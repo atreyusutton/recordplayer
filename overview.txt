@@ -1,0 +1,23 @@
+PROJECT OVERVIEW
+================
+
+This project transforms a 1byone vinyl record player into a fully self-contained
+Spotify-powered streaming turntable while preserving the physical ritual of vinyl.
+
+
+ITERATION 1
+-----------
+
+Iteration 1 focuses on:
+
+  - Removing all stock electronics
+  - Installing custom Raspberry Pi-based electronics
+  - Maintaining the original motor and spinning platter
+  - Adding a 4-inch LCD display for album artwork
+  - Delivering studio-quality RCA output
+  - Running Spotify locally on the device
+  - No analog blending yet
+  - No secondary control interface yet
+  - No stock circuit board
+
+This phase establishes a clean digital backbone for future hybrid expansion.
