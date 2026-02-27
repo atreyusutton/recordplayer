@@ -26,13 +26,16 @@ if [[ "${1:-}" == "--local" ]]; then
 
     echo "=== Copying files ==="
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    cp "$SCRIPT_DIR/display.py"              "$APP_DIR/display.py"
-    cp "$SCRIPT_DIR/onevent.sh"              "$APP_DIR/onevent.sh"
-    chmod +x "$APP_DIR/onevent.sh"
-    chmod +x "$APP_DIR/display.py"
+    # If running from a different directory (e.g. rsync'd temp copy), copy files in.
+    # If already running from APP_DIR (git deploy puts files there directly), skip.
+    if [[ "$SCRIPT_DIR" != "$APP_DIR" ]]; then
+        cp "$SCRIPT_DIR/display.py"  "$APP_DIR/display.py"
+        cp "$SCRIPT_DIR/onevent.sh"  "$APP_DIR/onevent.sh"
+    fi
+    chmod +x "$APP_DIR/onevent.sh" "$APP_DIR/display.py"
 
     echo "=== Installing systemd unit ==="
-    cp "$SCRIPT_DIR/record-display.service"  /etc/systemd/system/record-display.service
+    cp "$SCRIPT_DIR/record-display.service" /etc/systemd/system/record-display.service
     systemctl daemon-reload
     systemctl enable record-display.service
 
