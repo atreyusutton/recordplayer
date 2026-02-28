@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
-# onevent.sh — librespot event hook
-# Called by librespot on every playback event.
-# Writes /tmp/now_playing.json for display.py to pick up.
-#
-# Relevant env vars set by librespot:
-#   PLAYER_EVENT  — started | changed | playing | paused | stopped | preloading | end_of_track
-#   NAME          — track title
-#   ARTISTS       — artist name(s)
-#   ALBUM         — album name
-#   COVERS        — space-separated CDN image URLs (largest first)
-#   TRACK_ID      — Spotify track ID
+# librespot 0.8.0 onevent hook
+# In librespot 0.8.0, track metadata (NAME/ARTISTS/COVERS) is only present
+# on the `track_changed` event. The `playing` event fires separately without
+# metadata, so we persist track info to a state file for pause/resume.
+umask 022
 
 OUT="/tmp/now_playing.json"
+STATE="/tmp/now_playing_state.json"
 
-# Pick the first (largest) cover URL
+# Pick first (largest) cover URL
 COVER_URL=""
 for url in $COVERS; do
     COVER_URL="$url"
@@ -21,25 +16,39 @@ for url in $COVERS; do
 done
 
 case "$PLAYER_EVENT" in
-    playing|started|changed)
-        # Escape quotes for JSON safety
+    track_changed)
         TITLE="${NAME//\"/\\\"}"
         ARTIST="${ARTISTS//\"/\\\"}"
         COVER="${COVER_URL//\"/\\\"}"
-
+        # Persist track info for pause→resume
+        printf '{"title":"%s","artist":"%s","cover_url":"%s"}\n' \
+            "$TITLE" "$ARTIST" "$COVER" > "$STATE"
+        # Write playing JSON immediately (track_changed always precedes playback)
         printf '{\n  "event": "playing",\n  "title": "%s",\n  "artist": "%s",\n  "cover_url": "%s"\n}\n' \
             "$TITLE" "$ARTIST" "$COVER" > "$OUT"
         ;;
 
+    playing)
+        # Fired on resume from pause — no metadata in this event.
+        # Restore track info from saved state file.
+        if [ -f "$STATE" ]; then
+            python3 -c "
+import json
+s = json.load(open('$STATE'))
+d = {'event': 'playing', 'title': s.get('title',''), 'artist': s.get('artist',''), 'cover_url': s.get('cover_url','')}
+print(json.dumps(d, indent=2))
+" > "$OUT" 2>/dev/null || printf '{"event":"playing"}\n' > "$OUT"
+        fi
+        ;;
+
     paused)
-        printf '{"event": "paused"}\n' > "$OUT"
+        printf '{"event":"paused"}\n' > "$OUT"
         ;;
 
-    stopped|end_of_track)
-        printf '{"event": "stopped"}\n' > "$OUT"
+    stopped|end_of_track|session_disconnected)
+        printf '{"event":"stopped"}\n' > "$OUT"
         ;;
 
-    # preloading, volume_set, etc. — ignore
     *)
         exit 0
         ;;
