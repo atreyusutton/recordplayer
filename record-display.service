@@ -8,6 +8,7 @@ User=admin
 Environment=WAYLAND_DISPLAY=wayland-0
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=SDL_VIDEODRIVER=wayland
+Environment=HOME=/home/admin
 ExecStartPre=/bin/sleep 3
 ExecStart=/usr/bin/python3 /home/admin/apps/recordplayer/display.py
 Restart=always
