@@ -20,7 +20,7 @@ from PIL import Image
 
 try:
     import lgpio
-    MOTOR_PIN = 18  # BCM GPIO18, physical pin 12
+    MOTOR_PIN = 17  # BCM GPIO17, physical pin 11 (GPIO18 is I2S PCM_CLK for HiFiBerry DAC)
     _gpio_handle = lgpio.gpiochip_open(0)
     lgpio.gpio_claim_output(_gpio_handle, MOTOR_PIN, 0)  # 0 = start LOW (motor off)
     MOTOR_AVAILABLE = True
