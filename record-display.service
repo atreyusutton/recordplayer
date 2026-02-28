@@ -1,6 +1,6 @@
 [Unit]
 Description=Record Player Album Art Display
-After=graphical.target labwc.service
+After=graphical.target labwc.service network-online.target
 Wants=labwc.service
 
 [Service]
