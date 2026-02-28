@@ -19,19 +19,19 @@ import pygame
 from PIL import Image
 
 try:
-    import RPi.GPIO as GPIO
+    import lgpio
     MOTOR_PIN = 18  # BCM GPIO18, physical pin 12
-    GPIO.setwarnings(False)
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(MOTOR_PIN, GPIO.OUT)
-    GPIO.output(MOTOR_PIN, GPIO.LOW)
+    _gpio_handle = lgpio.gpiochip_open(0)
+    lgpio.gpio_claim_output(_gpio_handle, MOTOR_PIN, 0)  # 0 = start LOW (motor off)
     MOTOR_AVAILABLE = True
-except Exception:
+    print("[motor] GPIO ready, motor OFF", flush=True)
+except Exception as e:
     MOTOR_AVAILABLE = False
+    print(f"[motor] GPIO unavailable: {e}", flush=True)
 
 def set_motor(on: bool):
     if MOTOR_AVAILABLE:
-        GPIO.output(MOTOR_PIN, GPIO.HIGH if on else GPIO.LOW)
+        lgpio.gpio_write(_gpio_handle, MOTOR_PIN, 1 if on else 0)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 DISPLAY_SIZE = 720
@@ -247,4 +247,4 @@ if __name__ == "__main__":
     finally:
         set_motor(False)
         if MOTOR_AVAILABLE:
-            GPIO.cleanup()
+            lgpio.gpiochip_close(_gpio_handle)
