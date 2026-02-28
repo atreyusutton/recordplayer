@@ -21,12 +21,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 DISPLAY_SIZE = 720
-ARTWORK_SIZE = 720
-# Pre-scale to diagonal to avoid black corners during rotation: 720 * sqrt(2) ≈ 1018
-ROTATE_SIZE = math.ceil(DISPLAY_SIZE * math.sqrt(2))
-# Round up to nearest even for clean blitting
-if ROTATE_SIZE % 2 != 0:
-    ROTATE_SIZE += 1
+# The display is physically round, so black corners produced by rotation are
+# hidden by the circular bezel — no need to pre-scale to the diagonal.
 
 RPM = 33.333
 DEG_PER_SEC = RPM * 360 / 60   # 200 deg/sec
@@ -60,7 +56,7 @@ def load_cover(url: str) -> pygame.Surface:
         raw = resp.read()
     img = Image.open(io.BytesIO(raw)).convert("RGBA")
     # Scale to fill ROTATE_SIZE keeping aspect ratio, then center-crop
-    img = img.resize((ROTATE_SIZE, ROTATE_SIZE), Image.LANCZOS)
+    img = img.resize((DISPLAY_SIZE, DISPLAY_SIZE), Image.LANCZOS)
     return pil_to_pygame(img)
 
 
