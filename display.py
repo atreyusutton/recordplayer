@@ -196,7 +196,7 @@ def main():
 
     pygame.init()
     pygame.display.set_caption("Record Player")
-    screen = pygame.display.set_mode((DISPLAY_SIZE, DISPLAY_SIZE), pygame.NOFRAME)
+    screen = pygame.display.set_mode((DISPLAY_SIZE, DISPLAY_SIZE), pygame.FULLSCREEN | pygame.NOFRAME)
     clock = pygame.time.Clock()
 
     state = PlayerState()
