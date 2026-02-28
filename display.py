@@ -18,6 +18,21 @@ from pathlib import Path
 import pygame
 from PIL import Image
 
+try:
+    import RPi.GPIO as GPIO
+    MOTOR_PIN = 18  # BCM GPIO18, physical pin 12
+    GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(MOTOR_PIN, GPIO.OUT)
+    GPIO.output(MOTOR_PIN, GPIO.LOW)
+    MOTOR_AVAILABLE = True
+except Exception:
+    MOTOR_AVAILABLE = False
+
+def set_motor(on: bool):
+    if MOTOR_AVAILABLE:
+        GPIO.output(MOTOR_PIN, GPIO.HIGH if on else GPIO.LOW)
+
 # ── Constants ──────────────────────────────────────────────────────────────────
 DISPLAY_SIZE = 720
 # The display is physically round, so black corners produced by rotation are
@@ -154,9 +169,11 @@ def main():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                set_motor(False)
                 pygame.quit()
                 sys.exit(0)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                set_motor(False)
                 pygame.quit()
                 sys.exit(0)
 
@@ -166,7 +183,10 @@ def main():
             last_poll = now
             changed = state.poll()
             if changed:
-                spinning = (state.event == "playing")
+                now_playing = (state.event == "playing")
+                if now_playing != spinning:
+                    set_motor(now_playing)
+                spinning = now_playing
                 if state.cover_url and changed:
                     state.load_cover_async(state.cover_url, on_cover_loaded)
                 has_track = bool(state.cover_url or state.cover_surface)
@@ -222,4 +242,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        set_motor(False)
+        if MOTOR_AVAILABLE:
+            GPIO.cleanup()
