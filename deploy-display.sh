@@ -41,8 +41,11 @@ if [[ "${1:-}" == "--local" ]]; then
 
     echo "=== Patching raspotify/conf ==="
     CONF=/etc/raspotify/conf
+    # Always ensure LIBRESPOT_ONEVENT points to the correct script in APP_DIR.
+    # We replace any existing value rather than skipping, so re-runs stay current.
     if grep -q "LIBRESPOT_ONEVENT" "$CONF" 2>/dev/null; then
-        echo "    LIBRESPOT_ONEVENT already set, skipping."
+        sed -i "s|^LIBRESPOT_ONEVENT=.*|LIBRESPOT_ONEVENT=\"$APP_DIR/onevent.sh\"|" "$CONF"
+        echo "    Updated LIBRESPOT_ONEVENT in $CONF"
     else
         echo "" >> "$CONF"
         echo "LIBRESPOT_ONEVENT=\"$APP_DIR/onevent.sh\"" >> "$CONF"
