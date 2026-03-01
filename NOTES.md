@@ -104,33 +104,24 @@ The Pi has the DAC HAT stacked on top (RCA out). USB from Pi powers the 4" scree
 ### Physical Volume Knob
 Rotary encoder wired to GPIO for hardware volume control. Turning the knob adjusts the ALSA mixer level on the DAC directly, no screen interaction needed. Could reuse the original turntable's tonearm area or mount near the existing switches.
 
-### Standalone Control UI (Car Thing Style)
-Add a second small touchscreen (3-4" rectangular, 480x320 or 800x480) on the Pi's second HDMI output for playlist browsing, play/pause, skip, and search -- no phone required.
+### Standalone Control UI ✅ BUILT
 
-- **Playback engine:** librespot (already running via Raspotify)
-- **UI:** Custom web app (React or PWA) in Chromium kiosk mode, talking to the Spotify Web API
-- **Spotify Developer App** required for OAuth (Client ID + Secret from https://developer.spotify.com/dashboard)
-- Spotify Web API controls the device; actual audio streams through librespot locally
+Flask backend (`control.py`) + dark-theme HTML/JS frontend (`static/index.html`) running at **http://rasp-bumpy:8080**.
 
-#### Display Layout
+- **Backend:** Flask on port 8080, Spotify Web API OAuth (Authorization Code flow), token auto-refresh, 60s device ID cache
+- **Frontend:** Dark theme (`#0a0a0a` / Spotify green `#1db954`), album art + track info, progress bar with seek, play/pause/prev/next, volume slider, scrollable playlist browser
+- **Auth:** One-time SSH tunnel setup (`ssh -L 8080:localhost:8080 rasp-bumpy`) then open `http://localhost:8080` on Mac; thereafter browse directly at `http://rasp-bumpy:8080`
+- **Credentials:** `config.json` (gitignored), Redirect URI = `http://127.0.0.1:8080/callback`
+- **Target display size:** 500×282px (3.5" 16:9 — for future dedicated screen)
+
+#### Next: Physical Screen
+Add a 3.5" rectangular display (480×320 or 800×480) to Pi HDMI 1 in Chromium kiosk mode:
 ```
 HDMI 0 -> Round 720x720 (album art, spinning)
-HDMI 1 -> Rectangular (control UI)
+HDMI 1 -> Rectangular 500x282 (control UI)
 ```
 
-Both could run on a single monitor during development, then split to separate displays later.
-
-#### Control UI Layout
-- **Top:** Album art thumbnail, track title, artist
-- **Middle:** Large play/pause, skip back, skip forward
-- **Bottom:** Playlist browser, recently played
-- Dark theme, large touch targets, no scrollbars
-
-#### Performance
-- Disable desktop compositing
-- Hardware-accelerated Chromium
-- CSS transitions only, no heavy animations
-
 ### Other Ideas
-- Voice search (possible but complex)
+- Physical volume knob (rotary encoder on GPIO → ALSA mixer)
 - Physical play/pause button wired to GPIO
+- Voice search (possible but complex)
