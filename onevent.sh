@@ -3,15 +3,36 @@
 # In librespot 0.8.0, track metadata (NAME/ARTISTS/COVERS) is only present
 # on the `track_changed` event. The `playing` event fires separately without
 # metadata, so we persist track info to a state file for pause/resume.
+#
+# IMPORTANT: track_changed and playing fire nearly simultaneously as separate
+# processes. We use flock to serialize them so `playing` always reads the
+# STATE file that `track_changed` has already updated (not the old one).
 umask 022
 
 OUT="/tmp/now_playing.json"
 STATE="/tmp/now_playing_state.json"
+DEBUG_LOG="/tmp/onevent_debug.log"
 
-# Pick first (largest) cover URL
+# Serialize concurrent invocations — prevents the race where `playing` reads
+# stale STATE before `track_changed` has finished writing it.
+exec 9>/tmp/onevent.lock
+flock -x -w 5 9 || exit 1
+
+# Debug log: append event + key vars for every call (helps diagnose missing art)
+{
+    printf '\n[%s] PLAYER_EVENT=%s\n' "$(date -Iseconds)" "$PLAYER_EVENT"
+    env | grep -E '^(NAME|ARTISTS|ALBUM|COVERS|TRACK_ID|DURATION_MS)=' | sort
+} >> "$DEBUG_LOG" 2>/dev/null
+
+# Build cover URL from $COVERS.
+# librespot may provide full https:// URLs or bare image IDs depending on version.
 COVER_URL=""
-for url in $COVERS; do
-    COVER_URL="$url"
+for token in $COVERS; do
+    if [[ "$token" == http* ]]; then
+        COVER_URL="$token"
+    elif [[ -n "$token" ]]; then
+        COVER_URL="https://i.scdn.co/image/$token"
+    fi
     break
 done
 
@@ -20,10 +41,10 @@ case "$PLAYER_EVENT" in
         TITLE="${NAME//\"/\\\"}"
         ARTIST="${ARTISTS//\"/\\\"}"
         COVER="${COVER_URL//\"/\\\"}"
-        # Persist track info for pause→resume
+        # Persist track info for pause→resume (written before OUT so `playing`
+        # always reads fresh data if it fires concurrently)
         printf '{"title":"%s","artist":"%s","cover_url":"%s"}\n' \
             "$TITLE" "$ARTIST" "$COVER" > "$STATE"
-        # Write playing JSON immediately (track_changed always precedes playback)
         printf '{\n  "event": "playing",\n  "title": "%s",\n  "artist": "%s",\n  "cover_url": "%s"\n}\n' \
             "$TITLE" "$ARTIST" "$COVER" > "$OUT"
         ;;

@@ -95,7 +95,11 @@ class PlayerState:
         self.cover_surface: pygame.Surface | None = None
 
     def poll(self) -> bool:
-        """Check /tmp/now_playing.json for changes. Returns True if cover URL changed."""
+        """Check /tmp/now_playing.json for changes. Returns True if cover should update.
+
+        Only reacts to 'playing' events so that paused/stopped events (which carry
+        no cover_url) never accidentally clear or re-trigger a cover load.
+        """
         try:
             mtime = NOW_PLAYING_PATH.stat().st_mtime
         except FileNotFoundError:
@@ -108,8 +112,10 @@ class PlayerState:
         except (json.JSONDecodeError, OSError):
             return False
         with self._lock:
+            if data.get("event") != "playing":
+                return False
             new_url = data.get("cover_url", "")
-            if new_url and new_url != self.cover_url:
+            if new_url != self.cover_url:
                 self.cover_url = new_url
                 return True
         return False
@@ -177,7 +183,13 @@ def main():
             if state.poll():
                 if state.cover_url:
                     state.load_cover_async(state.cover_url, on_cover_loaded)
-                has_track = bool(state.cover_url or state.cover_surface)
+                else:
+                    # Track changed but no cover art — clear stale artwork
+                    print("[display] track has no cover art, clearing display", file=sys.stderr)
+                    new_cover_pending = None
+                    state.cover_surface = None
+                    fade_active = False
+                    has_track = False
 
         # ── Swap in newly downloaded cover ──
         if new_cover_pending is not None:
