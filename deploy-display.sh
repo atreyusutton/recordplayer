@@ -15,11 +15,11 @@ APP_DIR="/home/admin/apps/recordplayer"
 if [[ "${1:-}" == "--local" ]]; then
     # ── Running on the Pi itself ──────────────────────────────────────────────
     echo "=== Installing display dependencies ==="
-    apt-get install -y python3-pygame python3-pil python3-requests \
+    apt-get install -y python3-pygame python3-pil python3-requests python3-flask \
         fonts-dejavu-core 2>/dev/null || true
     # If apt packages are too old, install via pip into a venv or system-wide:
-    pip3 install --break-system-packages pygame pillow requests 2>/dev/null || \
-    pip3 install pygame pillow requests || true
+    pip3 install --break-system-packages pygame pillow requests flask 2>/dev/null || \
+    pip3 install pygame pillow requests flask || true
 
     echo "=== Creating app directory ==="
     mkdir -p "$APP_DIR"
@@ -29,15 +29,20 @@ if [[ "${1:-}" == "--local" ]]; then
     # If running from a different directory (e.g. rsync'd temp copy), copy files in.
     # If already running from APP_DIR (git deploy puts files there directly), skip.
     if [[ "$SCRIPT_DIR" != "$APP_DIR" ]]; then
-        cp "$SCRIPT_DIR/display.py"  "$APP_DIR/display.py"
-        cp "$SCRIPT_DIR/onevent.sh"  "$APP_DIR/onevent.sh"
+        cp "$SCRIPT_DIR/display.py"   "$APP_DIR/display.py"
+        cp "$SCRIPT_DIR/onevent.sh"   "$APP_DIR/onevent.sh"
+        cp "$SCRIPT_DIR/control.py"   "$APP_DIR/control.py"
+        mkdir -p "$APP_DIR/static"
+        cp "$SCRIPT_DIR/static/index.html" "$APP_DIR/static/index.html"
     fi
-    chmod +x "$APP_DIR/onevent.sh" "$APP_DIR/display.py"
+    chmod +x "$APP_DIR/onevent.sh" "$APP_DIR/display.py" "$APP_DIR/control.py"
 
-    echo "=== Installing systemd unit ==="
+    echo "=== Installing systemd units ==="
     cp "$SCRIPT_DIR/record-display.service" /etc/systemd/system/record-display.service
+    cp "$SCRIPT_DIR/control.service"        /etc/systemd/system/control.service
     systemctl daemon-reload
     systemctl enable record-display.service
+    systemctl enable control.service
 
     echo "=== Patching raspotify/conf ==="
     CONF=/etc/raspotify/conf
@@ -55,13 +60,22 @@ if [[ "${1:-}" == "--local" ]]; then
     echo "=== Restarting raspotify ==="
     systemctl restart raspotify
 
-    echo "=== Starting record-display ==="
+    echo "=== Starting services ==="
     systemctl restart record-display
+    # Only start control if config.json exists (credentials written separately)
+    if [ -f "$APP_DIR/config.json" ]; then
+        systemctl restart control
+    else
+        echo "    Skipping control service start — config.json not yet created."
+        echo "    Write credentials to $APP_DIR/config.json then: sudo systemctl start control"
+    fi
 
     echo ""
     echo "Done! Check status with:"
     echo "  sudo systemctl status record-display"
+    echo "  sudo systemctl status control"
     echo "  sudo journalctl -u record-display -f"
+    echo "  sudo journalctl -u control -f"
     echo ""
     echo "Play a track on Spotify to test."
 

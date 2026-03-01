@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Record Player</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1db954;
+      --bg:    #0a0a0a;
+      --card:  #111111;
+      --border:#1c1c1c;
+      --text:  #ffffff;
+      --muted: #aaaaaa;
+      --dim:   #555555;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* ── Auth screen ── */
+    #auth-screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+    #auth-screen h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    #auth-screen p  { color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 300px; }
+    #connect-btn {
+      margin-top: 8px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 500px;
+      padding: 14px 36px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+    #connect-btn:active { opacity: 0.85; }
+
+    /* ── Main UI ── */
+    #main-ui {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Now playing ── */
+    #now-playing {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 20px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #album-art {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      background: #1a1a1a;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    #track-info { flex: 1; min-width: 0; }
+    #track-name {
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #track-artist {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #track-album {
+      font-size: 12px;
+      color: var(--dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #device-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    #device-tag svg { flex-shrink: 0; }
+
+    /* ── Progress ── */
+    #progress-section {
+      padding: 10px 20px 6px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #progress-track {
+      width: 100%;
+      height: 3px;
+      background: #2a2a2a;
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+    }
+    #progress-track::after {
+      content: '';
+      position: absolute;
+      inset: -8px 0;  /* bigger touch target */
+    }
+    #progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 1s linear;
+      pointer-events: none;
+    }
+    #progress-times {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Controls ── */
+    #controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 14px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .ctrl {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s, transform 0.1s;
+    }
+    .ctrl:active { background: #222; transform: scale(0.92); }
+    .ctrl.primary {
+      width: 54px;
+      height: 54px;
+      background: var(--green);
+      padding: 0;
+    }
+    .ctrl.primary:active { background: #18a348; }
+    .ctrl svg { display: block; }
+
+    /* ── Volume ── */
+    #volume-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .vol-icon { color: var(--dim); flex-shrink: 0; }
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 3px;
+      border-radius: 2px;
+      background: #2a2a2a;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* ── Playlists ── */
+    #playlist-header {
+      padding: 12px 20px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    #playlists {
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    #playlists::-webkit-scrollbar { width: 3px; }
+    #playlists::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    .pl-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .pl-item:active { background: #161616; }
+    .pl-art {
+      width: 42px;
+      height: 42px;
+      border-radius: 4px;
+      background: #1a1a1a;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .pl-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pl-count { font-size: 12px; color: var(--dim); margin-top: 2px; }
+
+    #nothing-playing {
+      font-size: 13px;
+      color: var(--dim);
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth screen -->
+<div id="auth-screen">
+  <h1>Record Player</h1>
+  <p>Connect your Spotify account to control playback from this screen.</p>
+  <button id="connect-btn" onclick="location.href='/login'">Connect Spotify</button>
+</div>
+
+<!-- Main UI -->
+<div id="main-ui">
+
+  <!-- Now Playing -->
+  <div id="now-playing">
+    <img id="album-art" src="" alt="" onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
+    <div id="track-info">
+      <div id="track-name">—</div>
+      <div id="track-artist">—</div>
+      <div id="track-album"></div>
+      <div id="device-tag">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/>
+          <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/>
+        </svg>
+        <span id="device-name">Record Player</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-section">
+    <div id="progress-track" onclick="seek(event)">
+      <div id="progress-fill"></div>
+    </div>
+    <div id="progress-times">
+      <span id="time-current">0:00</span>
+      <span id="time-total">0:00</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button class="ctrl" onclick="cmd('previous')" aria-label="Previous">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
+      </svg>
+    </button>
+
+    <button class="ctrl primary" id="play-btn" onclick="togglePlay()" aria-label="Play/Pause">
+      <svg id="play-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+      <svg id="pause-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+      </svg>
+    </button>
+
+    <button class="ctrl" onclick="cmd('next')" aria-label="Next">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Volume -->
+  <div id="volume-section">
+    <svg class="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+    <input type="range" id="vol-slider" min="0" max="100" value="50"
+           oninput="scheduleVolume(this.value)">
+  </div>
+
+  <!-- Playlists -->
+  <div id="playlist-header">Your Playlists</div>
+  <div id="playlists"><div id="nothing-playing">Loading playlists…</div></div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let playing    = false;
+  let progressMs = 0;
+  let durationMs = 0;
+  let tickTimer  = null;
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function setProgress() {
+    if (!durationMs) return;
+    const pct = Math.min(progressMs / durationMs * 100, 100);
+    el('progress-fill').style.width = pct + '%';
+    el('time-current').textContent  = fmt(progressMs);
+    el('time-total').textContent    = fmt(durationMs);
+  }
+
+  // ── Commands ───────────────────────────────────────────────────────────────
+  async function cmd(action, body) {
+    await fetch(`/api/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : '{}',
+    });
+    setTimeout(poll, 400);   // quick follow-up poll to reflect change
+  }
+
+  function togglePlay() { cmd(playing ? 'pause' : 'play'); }
+
+  let _volTimer = null;
+  function scheduleVolume(v) {
+    clearTimeout(_volTimer);
+    _volTimer = setTimeout(() => cmd('volume', { volume: parseInt(v) }), 350);
+  }
+
+  function seek(e) {
+    if (!durationMs) return;
+    const rect  = e.currentTarget.getBoundingClientRect();
+    const pct   = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const posMs = Math.floor(pct * durationMs);
+    progressMs  = posMs;
+    setProgress();
+    cmd('seek', { position_ms: posMs });
+  }
+
+  // ── Now-playing poll ───────────────────────────────────────────────────────
+  async function poll() {
+    let data;
+    try {
+      const r = await fetch('/api/now-playing');
+      if (r.status === 401) {
+        el('auth-screen').style.display = 'flex';
+        el('main-ui').style.display     = 'none';
+        return;
+      }
+      data = await r.json();
+    } catch { return; }
+
+    el('auth-screen').style.display = 'none';
+    el('main-ui').style.display     = 'flex';
+
+    playing = data.playing;
+    el('play-icon').style.display  = playing ? 'none' : '';
+    el('pause-icon').style.display = playing ? '' : 'none';
+
+    clearInterval(tickTimer);
+    tickTimer = null;
+
+    if (data.track) {
+      const t = data.track;
+
+      el('track-name').textContent   = t.name   || '—';
+      el('track-artist').textContent = t.artists || '—';
+      el('track-album').textContent  = t.album   || '';
+
+      const art = el('album-art');
+      if (t.art && art.src !== t.art) art.src = t.art;
+
+      progressMs = t.progress_ms;
+      durationMs = t.duration_ms;
+      setProgress();
+
+      // Tick forward between polls
+      if (playing) {
+        tickTimer = setInterval(() => { progressMs += 1000; setProgress(); }, 1000);
+      }
+    }
+
+    if (data.device)  el('device-name').textContent = data.device;
+    if (data.volume != null) el('vol-slider').value = data.volume;
+  }
+
+  // ── Playlists ──────────────────────────────────────────────────────────────
+  async function loadPlaylists() {
+    let items;
+    try {
+      const r = await fetch('/api/playlists');
+      if (!r.ok) return;
+      items = await r.json();
+    } catch { return; }
+
+    const container = el('playlists');
+    container.innerHTML = '';
+
+    items.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'pl-item';
+      row.onclick   = () => cmd('play-playlist', { playlist_id: p.id });
+
+      const img = document.createElement('img');
+      img.className = 'pl-art';
+      img.src = p.art || '';
+      img.alt = '';
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+
+      const info = document.createElement('div');
+      info.style.minWidth = '0';
+
+      const name = document.createElement('div');
+      name.className   = 'pl-name';
+      name.textContent = p.name;
+
+      const count = document.createElement('div');
+      count.className   = 'pl-count';
+      count.textContent = `${p.tracks} tracks`;
+
+      info.append(name, count);
+      row.append(img, info);
+      container.append(row);
+    });
+
+    if (items.length === 0) {
+      container.innerHTML = '<div id="nothing-playing">No playlists found.</div>';
+    }
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  poll();
+  setInterval(poll, 3000);
+  loadPlaylists();
+</script>
+</body>
+</html>
