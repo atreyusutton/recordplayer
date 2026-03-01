@@ -7,6 +7,10 @@
 # IMPORTANT: track_changed and playing fire nearly simultaneously as separate
 # processes. We use flock to serialize them so `playing` always reads the
 # STATE file that `track_changed` has already updated (not the old one).
+#
+# IMPORTANT: librespot separates multiple artists with newline characters in
+# the ARTISTS env var. All JSON is written via python3 json.dumps to handle
+# this and any other special characters correctly.
 umask 022
 
 OUT="/tmp/now_playing.json"
@@ -38,27 +42,43 @@ done
 
 case "$PLAYER_EVENT" in
     track_changed)
-        TITLE="${NAME//\"/\\\"}"
-        ARTIST="${ARTISTS//\"/\\\"}"
-        COVER="${COVER_URL//\"/\\\"}"
-        # Persist track info for pause→resume (written before OUT so `playing`
-        # always reads fresh data if it fires concurrently)
-        printf '{"title":"%s","artist":"%s","cover_url":"%s"}\n' \
-            "$TITLE" "$ARTIST" "$COVER" > "$STATE"
-        printf '{\n  "event": "playing",\n  "title": "%s",\n  "artist": "%s",\n  "cover_url": "%s"\n}\n' \
-            "$TITLE" "$ARTIST" "$COVER" > "$OUT"
+        # Use python3 json.dumps to write both STATE and OUT so that special
+        # characters in NAME/ARTISTS (including the newlines librespot uses to
+        # separate multiple artists) are properly escaped. Passing values via
+        # env avoids any bash quoting issues.
+        COVER_URL="$COVER_URL" python3 - "$STATE" "$OUT" << 'PYEOF' 2>>"$DEBUG_LOG"
+import json, os, sys
+
+title  = os.environ.get('NAME', '')
+# librespot separates multiple artists with newlines — join them
+artist = ', '.join(os.environ.get('ARTISTS', '').splitlines())
+cover  = os.environ.get('COVER_URL', '')
+
+state   = {'title': title, 'artist': artist, 'cover_url': cover}
+playing = dict(state, event='playing')
+
+with open(sys.argv[1], 'w') as f:
+    f.write(json.dumps(state) + '\n')
+with open(sys.argv[2], 'w') as f:
+    f.write(json.dumps(playing, indent=2) + '\n')
+PYEOF
         ;;
 
     playing)
         # Fired on resume from pause — no metadata in this event.
         # Restore track info from saved state file.
         if [ -f "$STATE" ]; then
-            python3 -c "
-import json
-s = json.load(open('$STATE'))
-d = {'event': 'playing', 'title': s.get('title',''), 'artist': s.get('artist',''), 'cover_url': s.get('cover_url','')}
-print(json.dumps(d, indent=2))
-" > "$OUT" 2>/dev/null || printf '{"event":"playing"}\n' > "$OUT"
+            python3 - "$STATE" "$OUT" << 'PYEOF' 2>>"$DEBUG_LOG"
+import json, sys
+
+with open(sys.argv[1]) as f:
+    state = json.load(f)
+
+playing = dict(state, event='playing')
+
+with open(sys.argv[2], 'w') as f:
+    f.write(json.dumps(playing, indent=2) + '\n')
+PYEOF
         fi
         ;;
 
