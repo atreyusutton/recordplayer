@@ -36,23 +36,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      padding: 40px;
+      gap: 14px;
+      padding: 32px;
       text-align: center;
     }
-    #auth-screen h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    #auth-screen p  { color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 300px; }
+    #auth-screen h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    #auth-screen p  { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 260px; }
     #connect-btn {
-      margin-top: 8px;
+      margin-top: 6px;
       background: var(--green);
       color: #fff;
       border: none;
       border-radius: 500px;
-      padding: 14px 36px;
-      font-size: 16px;
+      padding: 12px 32px;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      letter-spacing: 0.02em;
     }
     #connect-btn:active { opacity: 0.85; }
 
@@ -68,60 +67,114 @@
     #now-playing {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 20px 20px 16px;
+      gap: 12px;
+      padding: 10px 14px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     #album-art {
-      width: 80px;
-      height: 80px;
-      border-radius: 6px;
+      width: 56px;
+      height: 56px;
+      border-radius: 4px;
       background: #1a1a1a;
       object-fit: cover;
       flex-shrink: 0;
     }
     #track-info { flex: 1; min-width: 0; }
     #track-name {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     #track-artist {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
-      margin-top: 3px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     #track-album {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--dim);
       margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    #device-tag {
-      display: inline-flex;
+
+    /* ── Controls + Volume row ── */
+    #controls-row {
+      display: flex;
       align-items: center;
-      gap: 5px;
-      margin-top: 6px;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--green);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      padding: 6px 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 8px;
     }
-    #device-tag svg { flex-shrink: 0; }
+    #playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .ctrl {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s, transform 0.1s;
+    }
+    .ctrl:active { background: #222; transform: scale(0.92); }
+    .ctrl.primary {
+      width: 40px;
+      height: 40px;
+      background: var(--green);
+      padding: 0;
+    }
+    .ctrl.primary:active { background: #18a348; }
+    .ctrl svg { display: block; }
+
+    /* ── Volume (right side of controls row) ── */
+    #volume-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+    .vol-icon { color: var(--dim); flex-shrink: 0; }
+    input[type=range] {
+      flex: 1;
+      max-width: 140px;
+      -webkit-appearance: none;
+      height: 3px;
+      border-radius: 2px;
+      background: #2a2a2a;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
 
     /* ── Progress ── */
     #progress-section {
-      padding: 10px 20px 6px;
+      padding: 6px 14px 8px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
@@ -137,7 +190,7 @@
     #progress-track::after {
       content: '';
       position: absolute;
-      inset: -8px 0;  /* bigger touch target */
+      inset: -8px 0;
     }
     #progress-fill {
       height: 100%;
@@ -156,117 +209,49 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ── Controls ── */
-    #controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      padding: 14px 20px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .ctrl {
-      background: none;
-      border: none;
-      color: var(--text);
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.1s, transform 0.1s;
-    }
-    .ctrl:active { background: #222; transform: scale(0.92); }
-    .ctrl.primary {
-      width: 54px;
-      height: 54px;
-      background: var(--green);
-      padding: 0;
-    }
-    .ctrl.primary:active { background: #18a348; }
-    .ctrl svg { display: block; }
-
-    /* ── Volume ── */
-    #volume-section {
+    /* ── Next Up ── */
+    #next-up {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 20px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .vol-icon { color: var(--dim); flex-shrink: 0; }
-    input[type=range] {
+      padding: 0 14px;
       flex: 1;
-      -webkit-appearance: none;
-      height: 3px;
-      border-radius: 2px;
-      background: #2a2a2a;
-      outline: none;
-      cursor: pointer;
+      min-height: 0;
+      background: var(--bg);
     }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    /* ── Playlists ── */
-    #playlist-header {
-      padding: 12px 20px 6px;
-      font-size: 10px;
+    #next-label {
+      font-size: 9px;
       font-weight: 700;
       color: var(--dim);
       text-transform: uppercase;
       letter-spacing: 0.1em;
+      white-space: nowrap;
       flex-shrink: 0;
     }
-    #playlists {
-      flex: 1;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-    }
-    #playlists::-webkit-scrollbar { width: 3px; }
-    #playlists::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-
-    .pl-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 9px 20px;
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-    .pl-item:active { background: #161616; }
-    .pl-art {
-      width: 42px;
-      height: 42px;
-      border-radius: 4px;
+    #next-art {
+      width: 34px;
+      height: 34px;
+      border-radius: 3px;
       background: #1a1a1a;
       object-fit: cover;
       flex-shrink: 0;
     }
-    .pl-name {
-      font-size: 14px;
+    #next-info { flex: 1; min-width: 0; }
+    #next-name {
+      font-size: 12px;
       font-weight: 500;
+      color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .pl-count { font-size: 12px; color: var(--dim); margin-top: 2px; }
-
-    #nothing-playing {
-      font-size: 13px;
+    #next-artist {
+      font-size: 11px;
       color: var(--dim);
-      text-align: center;
-      padding: 20px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
@@ -275,7 +260,7 @@
 <!-- Auth screen -->
 <div id="auth-screen">
   <h1>Record Player</h1>
-  <p>Connect your Spotify account to control playback from this screen.</p>
+  <p>Connect your Spotify account to control playback.</p>
   <button id="connect-btn" onclick="location.href='/login'">Connect Spotify</button>
 </div>
 
@@ -289,14 +274,38 @@
       <div id="track-name">—</div>
       <div id="track-artist">—</div>
       <div id="track-album"></div>
-      <div id="device-tag">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/>
-          <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/>
+    </div>
+  </div>
+
+  <!-- Controls + Volume -->
+  <div id="controls-row">
+    <div id="playback-controls">
+      <button class="ctrl" onclick="cmd('previous')" aria-label="Previous">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
         </svg>
-        <span id="device-name">Record Player</span>
-      </div>
+      </button>
+      <button class="ctrl primary" id="play-btn" onclick="togglePlay()" aria-label="Play/Pause">
+        <svg id="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg id="pause-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      </button>
+      <button class="ctrl" onclick="cmd('next')" aria-label="Next">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="volume-section">
+      <svg class="vol-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+      </svg>
+      <input type="range" id="vol-slider" min="0" max="100" value="50"
+             oninput="scheduleVolume(this.value)">
     </div>
   </div>
 
@@ -311,42 +320,15 @@
     </div>
   </div>
 
-  <!-- Controls -->
-  <div id="controls">
-    <button class="ctrl" onclick="cmd('previous')" aria-label="Previous">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
-      </svg>
-    </button>
-
-    <button class="ctrl primary" id="play-btn" onclick="togglePlay()" aria-label="Play/Pause">
-      <svg id="play-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M8 5v14l11-7z"/>
-      </svg>
-      <svg id="pause-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none">
-        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-      </svg>
-    </button>
-
-    <button class="ctrl" onclick="cmd('next')" aria-label="Next">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
-      </svg>
-    </button>
+  <!-- Next Up -->
+  <div id="next-up">
+    <span id="next-label">Next</span>
+    <img id="next-art" src="" alt="" onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
+    <div id="next-info">
+      <div id="next-name">—</div>
+      <div id="next-artist"></div>
+    </div>
   </div>
-
-  <!-- Volume -->
-  <div id="volume-section">
-    <svg class="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-    </svg>
-    <input type="range" id="vol-slider" min="0" max="100" value="50"
-           oninput="scheduleVolume(this.value)">
-  </div>
-
-  <!-- Playlists -->
-  <div id="playlist-header">Your Playlists</div>
-  <div id="playlists"><div id="nothing-playing">Loading playlists…</div></div>
 
 </div>
 
@@ -380,7 +362,7 @@
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : '{}',
     });
-    setTimeout(poll, 400);   // quick follow-up poll to reflect change
+    setTimeout(poll, 400);
   }
 
   function togglePlay() { cmd(playing ? 'pause' : 'play'); }
@@ -426,8 +408,7 @@
 
     if (data.track) {
       const t = data.track;
-
-      el('track-name').textContent   = t.name   || '—';
+      el('track-name').textContent   = t.name    || '—';
       el('track-artist').textContent = t.artists || '—';
       el('track-album').textContent  = t.album   || '';
 
@@ -438,64 +419,30 @@
       durationMs = t.duration_ms;
       setProgress();
 
-      // Tick forward between polls
       if (playing) {
         tickTimer = setInterval(() => { progressMs += 1000; setProgress(); }, 1000);
       }
     }
 
-    if (data.device)  el('device-name').textContent = data.device;
     if (data.volume != null) el('vol-slider').value = data.volume;
-  }
 
-  // ── Playlists ──────────────────────────────────────────────────────────────
-  async function loadPlaylists() {
-    let items;
-    try {
-      const r = await fetch('/api/playlists');
-      if (!r.ok) return;
-      items = await r.json();
-    } catch { return; }
-
-    const container = el('playlists');
-    container.innerHTML = '';
-
-    items.forEach(p => {
-      const row = document.createElement('div');
-      row.className = 'pl-item';
-      row.onclick   = () => cmd('play-playlist', { playlist_id: p.id });
-
-      const img = document.createElement('img');
-      img.className = 'pl-art';
-      img.src = p.art || '';
-      img.alt = '';
-      img.onerror = () => { img.style.visibility = 'hidden'; };
-
-      const info = document.createElement('div');
-      info.style.minWidth = '0';
-
-      const name = document.createElement('div');
-      name.className   = 'pl-name';
-      name.textContent = p.name;
-
-      const count = document.createElement('div');
-      count.className   = 'pl-count';
-      count.textContent = `${p.tracks} tracks`;
-
-      info.append(name, count);
-      row.append(img, info);
-      container.append(row);
-    });
-
-    if (items.length === 0) {
-      container.innerHTML = '<div id="nothing-playing">No playlists found.</div>';
+    // Next up
+    const n = data.next_track;
+    const nextUp = el('next-up');
+    if (n) {
+      el('next-name').textContent   = n.name    || '—';
+      el('next-artist').textContent = n.artists || '';
+      const nextArt = el('next-art');
+      if (n.art && nextArt.src !== n.art) nextArt.src = n.art;
+      nextUp.style.visibility = '';
+    } else {
+      nextUp.style.visibility = 'hidden';
     }
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   poll();
   setInterval(poll, 3000);
-  loadPlaylists();
 </script>
 </body>
 </html>

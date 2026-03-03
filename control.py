@@ -43,6 +43,7 @@ SCOPES = " ".join([
     "user-read-currently-playing",
     "playlist-read-private",
     "playlist-read-collaborative",
+    "user-read-playback-queue",
 ])
 
 SPOTIFY_AUTH  = "https://accounts.spotify.com/authorize"
@@ -210,8 +211,24 @@ def now_playing():
     album = item.get("album") or {}
     images = album.get("images") or []
 
+    next_track = None
+    try:
+        q_resp = _get("/me/player/queue")
+        if q_resp.ok:
+            q_items = q_resp.json().get("queue") or []
+            if q_items:
+                n = q_items[0]
+                n_images = (n.get("album") or {}).get("images") or []
+                next_track = {
+                    "name":    n.get("name", ""),
+                    "artists": ", ".join(a["name"] for a in n.get("artists", [])),
+                    "art":     n_images[0]["url"] if n_images else "",
+                }
+    except Exception:
+        pass
+
     return jsonify({
-        "playing":  data.get("is_playing", False),
+        "playing":    data.get("is_playing", False),
         "track": {
             "name":        item.get("name", ""),
             "artists":     ", ".join(a["name"] for a in item.get("artists", [])),
@@ -220,8 +237,9 @@ def now_playing():
             "duration_ms": item.get("duration_ms", 0),
             "progress_ms": data.get("progress_ms", 0),
         } if item else None,
-        "volume":  _alsa_get()[0],
-        "device":  (data.get("device") or {}).get("name", ""),
+        "volume":     _alsa_get()[0],
+        "device":     (data.get("device") or {}).get("name", ""),
+        "next_track": next_track,
     })
 
 # ── Playback commands ──────────────────────────────────────────────────────────
