@@ -105,13 +105,16 @@
       text-overflow: ellipsis;
     }
 
-    /* ── Volume (right side of next-up row) ── */
+    /* ── Volume (absolute, anchored to right edge of next-up) ── */
     #volume-section {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
       align-items: center;
       gap: 4px;
-      flex-shrink: 0;
-      width: 80px;
+      width: 90px;
     }
     .vol-icon { color: var(--dim); flex-shrink: 0; }
     input[type=range] {
@@ -206,10 +209,11 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 0 16px;
+      padding: 0 110px 0 16px;
       flex: 1;
       min-height: 0;
       background: var(--bg);
+      position: relative;
     }
     #next-label {
       font-size: 9px;
