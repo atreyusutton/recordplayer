@@ -29,7 +29,7 @@ SW   = 22
 CARD         = "sndrpihifiberry"
 CONTROL      = "Digital"
 STEP         = 3   # percent per detent
-BOOT_VOLUME  = 30  # percent set on startup
+BOOT_VOLUME  = 65  # percent set on startup
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
