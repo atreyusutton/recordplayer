@@ -10,7 +10,9 @@ First-time setup: open an SSH tunnel then visit http://localhost:8080
 
 import json
 import os
+import re
 import secrets
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -50,6 +52,30 @@ DEVICE_NAME   = "Record Player"
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
+
+ALSA_CARD    = "sndrpihifiberry"
+ALSA_CONTROL = "Digital"
+
+# ── ALSA system volume ──────────────────────────────────────────────────────────
+
+def _alsa_get() -> tuple[int, bool]:
+    """Return (volume_percent 0-100, muted bool) from ALSA Digital control."""
+    try:
+        out = subprocess.check_output(
+            ["amixer", "-c", ALSA_CARD, "sget", ALSA_CONTROL], text=True
+        )
+        m = re.search(r"\[(\d+)%\]", out)
+        vol = int(m.group(1)) if m else 50
+        muted = "[off]" in out
+        return vol, muted
+    except Exception:
+        return 50, False
+
+def _alsa_set(vol: int):
+    subprocess.run(
+        ["amixer", "-c", ALSA_CARD, "-q", "sset", ALSA_CONTROL, f"{vol}%"],
+        check=False,
+    )
 
 # ── Token management ───────────────────────────────────────────────────────────
 
@@ -194,7 +220,7 @@ def now_playing():
             "duration_ms": item.get("duration_ms", 0),
             "progress_ms": data.get("progress_ms", 0),
         } if item else None,
-        "volume":  (data.get("device") or {}).get("volume_percent", 50),
+        "volume":  _alsa_get()[0],
         "device":  (data.get("device") or {}).get("name", ""),
     })
 
@@ -237,11 +263,7 @@ def seek():
 @app.post("/api/volume")
 def volume():
     vol = max(0, min(100, int(request.json.get("volume", 50))))
-    dev = _pi_device_id()
-    params = {"volume_percent": vol}
-    if dev:
-        params["device_id"] = dev
-    _put("/me/player/volume", params=params)
+    _alsa_set(vol)
     return jsonify({"ok": True})
 
 # ── Playlists ──────────────────────────────────────────────────────────────────

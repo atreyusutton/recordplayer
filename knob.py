@@ -14,6 +14,7 @@ Behaviour:
   Press       → mute / unmute toggle
 """
 
+import re
 import signal
 import subprocess
 import logging
@@ -25,9 +26,10 @@ CLK  = 17   # GPIO BCM number
 DT   = 27
 SW   = 22
 
-CARD    = "sndrpihifiberry"
-CONTROL = "Digital"
-STEP    = 3  # percent per detent
+CARD         = "sndrpihifiberry"
+CONTROL      = "Digital"
+STEP         = 3   # percent per detent
+BOOT_VOLUME  = 75  # percent set on startup
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -44,6 +46,11 @@ def _amixer(*args):
         ["amixer", "-c", CARD, "-q", "sset", CONTROL, *args],
         check=False,
     )
+
+
+def _set_boot_volume():
+    _amixer(f"{BOOT_VOLUME}%")
+    log.info("boot volume set to %d%%", BOOT_VOLUME)
 
 
 _muted = False
@@ -78,6 +85,7 @@ rotor.when_rotated_counter_clockwise = vol_down
 button = Button(SW, pull_up=True, bounce_time=0.05)
 button.when_pressed = toggle_mute
 
+_set_boot_volume()
 log.info(
     "ready  CLK=GPIO%d  DT=GPIO%d  SW=GPIO%d  card=%s  control=%s  step=%d%%",
     CLK, DT, SW, CARD, CONTROL, STEP,
