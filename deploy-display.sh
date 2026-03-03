@@ -16,7 +16,7 @@ if [[ "${1:-}" == "--local" ]]; then
     # ── Running on the Pi itself ──────────────────────────────────────────────
     echo "=== Installing display dependencies ==="
     apt-get install -y python3-pygame python3-pil python3-requests python3-flask \
-        fonts-dejavu-core 2>/dev/null || true
+        python3-gpiozero fonts-dejavu-core 2>/dev/null || true
     # If apt packages are too old, install via pip into a venv or system-wide:
     pip3 install --break-system-packages pygame pillow requests flask 2>/dev/null || \
     pip3 install pygame pillow requests flask || true
@@ -32,17 +32,20 @@ if [[ "${1:-}" == "--local" ]]; then
         cp "$SCRIPT_DIR/display.py"   "$APP_DIR/display.py"
         cp "$SCRIPT_DIR/onevent.sh"   "$APP_DIR/onevent.sh"
         cp "$SCRIPT_DIR/control.py"   "$APP_DIR/control.py"
+        cp "$SCRIPT_DIR/knob.py"      "$APP_DIR/knob.py"
         mkdir -p "$APP_DIR/static"
         cp "$SCRIPT_DIR/static/index.html" "$APP_DIR/static/index.html"
     fi
-    chmod +x "$APP_DIR/onevent.sh" "$APP_DIR/display.py" "$APP_DIR/control.py"
+    chmod +x "$APP_DIR/onevent.sh" "$APP_DIR/display.py" "$APP_DIR/control.py" "$APP_DIR/knob.py"
 
     echo "=== Installing systemd units ==="
     cp "$SCRIPT_DIR/record-display.service" /etc/systemd/system/record-display.service
     cp "$SCRIPT_DIR/control.service"        /etc/systemd/system/control.service
+    cp "$SCRIPT_DIR/knob.service"           /etc/systemd/system/knob.service
     systemctl daemon-reload
     systemctl enable record-display.service
     systemctl enable control.service
+    systemctl enable knob.service
 
     echo "=== Patching raspotify/conf ==="
     CONF=/etc/raspotify/conf
@@ -69,13 +72,16 @@ if [[ "${1:-}" == "--local" ]]; then
         echo "    Skipping control service start — config.json not yet created."
         echo "    Write credentials to $APP_DIR/config.json then: sudo systemctl start control"
     fi
+    systemctl restart knob
 
     echo ""
     echo "Done! Check status with:"
     echo "  sudo systemctl status record-display"
     echo "  sudo systemctl status control"
+    echo "  sudo systemctl status knob"
     echo "  sudo journalctl -u record-display -f"
     echo "  sudo journalctl -u control -f"
+    echo "  sudo journalctl -u knob -f"
     echo ""
     echo "Play a track on Spotify to test."
 
