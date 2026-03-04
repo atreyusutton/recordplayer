@@ -131,6 +131,22 @@ def _put(path: str, **kwargs):
 # Cache the Pi device ID for 60s to avoid an extra API call on every command
 _device_cache: tuple[str, float] = ("", 0.0)
 
+# Cache the Spotify user ID
+_user_id_cache: tuple[str, float] = ("", 0.0)
+
+def _get_user_id() -> str | None:
+    global _user_id_cache
+    cached_id, cached_at = _user_id_cache
+    if cached_id and time.time() - cached_at < 3600:
+        return cached_id
+    resp = _get("/me")
+    if not resp.ok:
+        return None
+    uid = resp.json().get("id", "")
+    if uid:
+        _user_id_cache = (uid, time.time())
+    return uid or None
+
 def _pi_device_id() -> str | None:
     global _device_cache
     cached_id, cached_at = _device_cache
@@ -314,7 +330,10 @@ def playlists():
     resp = _get("/me/playlists", params={"limit": 50})
     if not resp.ok:
         return jsonify({"error": "api_error"}), 502
+    user_id = _get_user_id()
     items = [p for p in resp.json().get("items", []) if p]
+    if user_id:
+        items = [p for p in items if (p.get("owner") or {}).get("id") == user_id]
     return jsonify([{
         "id":     p["id"],
         "name":   p["name"],
