@@ -311,15 +311,15 @@ def play_playlist():
 
 @app.get("/api/playlist/<playlist_id>/tracks")
 def playlist_tracks(playlist_id):
-    resp = _get(f"/playlists/{playlist_id}/tracks", params={
+    resp = _get(f"/playlists/{playlist_id}/items", params={
         "limit": 50,
-        "fields": "items(track(id,name,duration_ms,artists,album(images),uri))",
+        "fields": "items(item(id,name,duration_ms,artists,album(images),uri))",
     })
     if not resp.ok:
         return jsonify({"error": "api_error"}), 502
     tracks = []
     for item in resp.json().get("items", []):
-        t = item.get("track")
+        t = item.get("item")
         if not t:
             continue
         images = (t.get("album") or {}).get("images") or []
