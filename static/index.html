@@ -389,6 +389,18 @@
       text-overflow: ellipsis;
     }
     .pl-card-count { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    .liked-card { grid-column: 1 / -1; }
+    .liked-art {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #450af5 0%, #8e44ad 50%, #c4efd9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px;
+    }
     #pl-spinner {
       flex: 1;
       display: flex;
@@ -923,7 +935,15 @@
     el('pl-spinner').style.display = 'none';
     const scroll = el('pl-list-scroll');
     scroll.style.display = '';
-    scroll.innerHTML = items.map(p => `
+    const likedCard = `
+      <div class="pl-card liked-card" onclick="openLikedSongs()">
+        <div class="liked-art">♥</div>
+        <div class="pl-card-info">
+          <div class="pl-card-name">Liked Songs</div>
+          <div class="pl-card-count" id="liked-count">Your library</div>
+        </div>
+      </div>`;
+    scroll.innerHTML = likedCard + items.map(p => `
       <div class="pl-card" onclick="openPlaylist('${escStr(p.id)}','${escStr(p.name)}')">
         <img src="${escHtml(p.art)}" alt=""
              onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
@@ -933,6 +953,35 @@
         </div>
       </div>
     `).join('');
+  }
+
+  let likedCollectionUri = '';
+
+  async function openLikedSongs() {
+    currentPlaylist = { id: '__liked__', uri: '', name: 'Liked Songs' };
+    el('pl-tracks-title').textContent     = 'Liked Songs';
+    el('pl-tracks-spinner').style.display = '';
+    el('pl-tracks-spinner').textContent   = 'Loading…';
+    el('pl-tracks-scroll').style.display  = 'none';
+    el('pl-tracks-scroll').innerHTML      = '';
+    el('pl-pages').style.transform        = 'translateX(-50%)';
+    try {
+      const r = await fetch('/api/liked-tracks');
+      if (r.status === 401 || r.status === 403) {
+        el('pl-tracks-spinner').textContent = 'Re-open /login to grant library access.';
+        return;
+      }
+      const data = await r.json();
+      likedCollectionUri   = data.collection_uri || '';
+      currentPlaylist.uri  = likedCollectionUri;
+      currentTracks        = data.tracks || [];
+      el('pl-tracks-title').textContent = `Liked Songs (${data.total})`;
+      const countEl = document.getElementById('liked-count');
+      if (countEl) countEl.textContent = `${data.total} tracks`;
+      renderTracks(currentTracks);
+    } catch {
+      el('pl-tracks-spinner').textContent = 'Failed to load liked songs.';
+    }
   }
 
   async function openPlaylist(id, name) {
@@ -991,10 +1040,12 @@
 
   async function playAll() {
     if (!currentPlaylist) return;
-    await fetch('/api/play-playlist', {
+    const endpoint = currentPlaylist.id === '__liked__' ? '/api/play-liked' : '/api/play-playlist';
+    const body     = currentPlaylist.id === '__liked__' ? {} : { playlist_id: currentPlaylist.id };
+    fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playlist_id: currentPlaylist.id }),
+      body: JSON.stringify(body),
     });
     goToPage(0);
     setTimeout(poll, 600);

@@ -46,6 +46,7 @@ SCOPES = " ".join([
     "playlist-read-collaborative",
     "user-read-playback-queue",
     "user-read-recently-played",
+    "user-library-read",
 ])
 
 SPOTIFY_AUTH  = "https://accounts.spotify.com/authorize"
@@ -399,6 +400,50 @@ def play_context():
     dev = _pi_device_id()
     params = {"device_id": dev} if dev else {}
     body: dict = {"context_uri": context_uri}
+    if offset is not None:
+        body["offset"] = {"position": offset}
+    _put("/me/player/play", params=params, json=body)
+    return jsonify({"ok": True})
+
+# ── Liked Songs ────────────────────────────────────────────────────────────────
+
+@app.get("/api/liked-tracks")
+def liked_tracks():
+    offset = int(request.args.get("offset", 0))
+    resp = _get("/me/tracks", params={"limit": 50, "offset": offset})
+    if not resp.ok:
+        return jsonify({"error": "api_error"}), resp.status_code
+    data = resp.json()
+    user_id = _get_user_id() or ""
+    tracks = []
+    for item in data.get("items", []):
+        t = item.get("track")
+        if not t:
+            continue
+        images = (t.get("album") or {}).get("images") or []
+        tracks.append({
+            "id":          t.get("id", ""),
+            "name":        t.get("name", ""),
+            "artists":     ", ".join(a["name"] for a in t.get("artists", [])),
+            "duration_ms": t.get("duration_ms", 0),
+            "art":         images[0]["url"] if images else "",
+            "uri":         t.get("uri", ""),
+        })
+    return jsonify({
+        "tracks":          tracks,
+        "total":           data.get("total", 0),
+        "collection_uri":  f"spotify:user:{user_id}:collection" if user_id else "",
+    })
+
+@app.post("/api/play-liked")
+def play_liked():
+    user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "no_user"}), 400
+    offset = (request.json or {}).get("offset")
+    dev = _pi_device_id()
+    params = {"device_id": dev} if dev else {}
+    body: dict = {"context_uri": f"spotify:user:{user_id}:collection"}
     if offset is not None:
         body["offset"] = {"position": offset}
     _put("/me/player/play", params=params, json=body)
