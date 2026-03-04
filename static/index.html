@@ -638,7 +638,7 @@
               <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
             </svg>
           </button>
-          <button class="ctrl nav" onclick="cmd('previous')" aria-label="Previous">
+          <button class="ctrl nav" onclick="skip('previous')" aria-label="Previous">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
             </svg>
@@ -651,7 +651,7 @@
               <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
             </svg>
           </button>
-          <button class="ctrl nav" onclick="cmd('next')" aria-label="Next">
+          <button class="ctrl nav" onclick="skip('next')" aria-label="Next">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
             </svg>
@@ -803,10 +803,18 @@
   })();
 
   // ── Shuffle & Repeat ───────────────────────────────────────────────────────
+  // Skip track — fire command, then poll at 300ms and 900ms (Spotify needs a moment)
+  function skip(direction) {
+    cmd(direction);
+    pollAfterCmd(300);
+    setTimeout(poll, 900);
+  }
+
   function toggleShuffle() {
     shuffleState = !shuffleState;
     updateShuffleBtn();
     cmd('shuffle', { state: shuffleState });
+    pollAfterCmd(400);
   }
 
   function updateShuffleBtn() {
@@ -817,6 +825,7 @@
     repeatState = { off: 'context', context: 'track', track: 'off' }[repeatState] || 'off';
     updateRepeatBtn();
     cmd('repeat', { state: repeatState });
+    pollAfterCmd(400);
   }
 
   function updateRepeatBtn() {
@@ -846,16 +855,33 @@
   }
 
   // ── Commands ───────────────────────────────────────────────────────────────
-  async function cmd(action, body) {
-    await fetch(`/api/${action}`, {
+  // Fire-and-forget — don't await the Pi→Spotify round-trip
+  function cmd(action, body) {
+    fetch(`/api/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : '{}',
     });
-    setTimeout(poll, 400);
   }
 
-  function togglePlay() { cmd(playing ? 'pause' : 'play'); }
+  // Poll immediately then again after a short delay to catch Spotify propagation
+  let _fastPollTimer = null;
+  function pollAfterCmd(delayMs = 300) {
+    clearTimeout(_fastPollTimer);
+    _fastPollTimer = setTimeout(poll, delayMs);
+  }
+
+  function togglePlay() {
+    const action = playing ? 'pause' : 'play';
+    // Optimistic UI — flip immediately, poll corrects if needed
+    playing = !playing;
+    el('play-icon').style.display  = playing ? 'none' : '';
+    el('pause-icon').style.display = playing ? '' : 'none';
+    clearInterval(tickTimer); tickTimer = null;
+    if (playing) tickTimer = setInterval(() => { progressMs += 1000; setProgress(); }, 1000);
+    cmd(action);
+    pollAfterCmd(500);
+  }
 
   function setVolBg(v) {
     el('vol-slider').style.background =
@@ -866,7 +892,8 @@
   function scheduleVolume(v) {
     setVolBg(v);
     clearTimeout(_volTimer);
-    _volTimer = setTimeout(() => cmd('volume', { volume: parseInt(v) }), 350);
+    // Volume is ALSA-local — no need to re-poll after setting
+    _volTimer = setTimeout(() => cmd('volume', { volume: parseInt(v) }), 300);
   }
 
   function seek(e) {
@@ -877,6 +904,7 @@
     progressMs  = posMs;
     setProgress();
     cmd('seek', { position_ms: posMs });
+    pollAfterCmd(400);
   }
 
   // ── Playlists ──────────────────────────────────────────────────────────────
