@@ -309,6 +309,47 @@ def play_playlist():
          json={"context_uri": f"spotify:playlist:{playlist_id}"})
     return jsonify({"ok": True})
 
+@app.get("/api/playlist/<playlist_id>/tracks")
+def playlist_tracks(playlist_id):
+    resp = _get(f"/playlists/{playlist_id}/tracks", params={
+        "limit": 50,
+        "fields": "items(track(id,name,duration_ms,artists,album(images),uri))",
+    })
+    if not resp.ok:
+        return jsonify({"error": "api_error"}), 502
+    tracks = []
+    for item in resp.json().get("items", []):
+        t = item.get("track")
+        if not t:
+            continue
+        images = (t.get("album") or {}).get("images") or []
+        tracks.append({
+            "id":          t.get("id", ""),
+            "name":        t.get("name", ""),
+            "artists":     ", ".join(a["name"] for a in t.get("artists", [])),
+            "duration_ms": t.get("duration_ms", 0),
+            "art":         images[0]["url"] if images else "",
+            "uri":         t.get("uri", ""),
+        })
+    return jsonify(tracks)
+
+@app.post("/api/play-track")
+def play_track():
+    data = request.json
+    track_uri    = data.get("track_uri")
+    playlist_uri = data.get("playlist_uri")
+    offset       = data.get("offset")
+    dev = _pi_device_id()
+    params = {"device_id": dev} if dev else {}
+    body = {}
+    if playlist_uri and offset is not None:
+        body["context_uri"] = playlist_uri
+        body["offset"]      = {"position": offset}
+    else:
+        body["uris"] = [track_uri]
+    _put("/me/player/play", params=params, json=body)
+    return jsonify({"ok": True})
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
