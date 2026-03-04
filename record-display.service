@@ -1,6 +1,6 @@
 [Unit]
 Description=Record Player Album Art Display
-After=graphical.target labwc.service network-online.target
+After=graphical.target labwc.service
 Wants=labwc.service
 
 [Service]
@@ -10,7 +10,7 @@ Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=SDL_VIDEODRIVER=wayland
 Environment=HOME=/home/admin
 WorkingDirectory=/tmp
-ExecStartPre=/bin/sleep 3
+ExecStartPre=/bin/sh -c 'until [ -S /run/user/1000/wayland-0 ]; do sleep 0.1; done'
 ExecStart=/usr/bin/python3 /home/admin/apps/recordplayer/display.py
 Restart=always
 RestartSec=3

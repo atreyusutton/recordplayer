@@ -151,7 +151,8 @@ def main():
     os.environ.setdefault("WAYLAND_DISPLAY", "wayland-0")
     os.environ.setdefault("XDG_RUNTIME_DIR", "/run/user/1000")
 
-    pygame.init()
+    pygame.display.init()
+    pygame.font.init()
     pygame.mouse.set_visible(False)
     pygame.display.set_caption("Record Player")
     screen = pygame.display.set_mode((DISPLAY_SIZE, DISPLAY_SIZE), pygame.FULLSCREEN | pygame.NOFRAME)
