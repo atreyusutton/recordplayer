@@ -72,9 +72,9 @@
       justify-content: center;
       align-items: center;
       gap: 6px;
-      height: 20px;
+      height: 24px;
       flex-shrink: 0;
-      padding-top: 4px;
+      padding-bottom: 6px;
     }
     .dot {
       width: 6px;
@@ -494,12 +494,6 @@
 <!-- Main UI -->
 <div id="main-ui">
 
-  <!-- Page dots -->
-  <div id="page-dots">
-    <div class="dot active" onclick="goToPage(0)"></div>
-    <div class="dot"        onclick="goToPage(1)"></div>
-  </div>
-
   <!-- Pages outer (clips) -->
   <div id="pages-outer">
     <div id="pages">
@@ -599,6 +593,12 @@
 
     </div><!-- /pages -->
   </div><!-- /pages-outer -->
+
+  <!-- Page dots -->
+  <div id="page-dots">
+    <div class="dot active" onclick="goToPage(0)"></div>
+    <div class="dot"        onclick="goToPage(1)"></div>
+  </div>
 
 </div><!-- /main-ui -->
 

@@ -295,7 +295,7 @@ def playlists():
     return jsonify([{
         "id":     p["id"],
         "name":   p["name"],
-        "tracks": p["tracks"]["total"],
+        "tracks": (p.get("tracks") or {}).get("total", 0),
         "art":    (p.get("images") or [{}])[0].get("url", ""),
     } for p in items])
 
