@@ -14,6 +14,7 @@ import re
 import secrets
 import subprocess
 import sys
+import threading
 import time
 import urllib.parse
 from pathlib import Path
@@ -44,6 +45,7 @@ SCOPES = " ".join([
     "playlist-read-private",
     "playlist-read-collaborative",
     "user-read-playback-queue",
+    "user-read-recently-played",
 ])
 
 SPOTIFY_AUTH  = "https://accounts.spotify.com/authorize"
@@ -211,24 +213,25 @@ def now_playing():
     album = item.get("album") or {}
     images = album.get("images") or []
 
-    next_track = None
+    queue_items = []
     try:
         q_resp = _get("/me/player/queue")
         if q_resp.ok:
-            q_items = q_resp.json().get("queue") or []
-            if q_items:
-                n = q_items[0]
+            for n in (q_resp.json().get("queue") or [])[:10]:
                 n_images = (n.get("album") or {}).get("images") or []
-                next_track = {
-                    "name":    n.get("name", ""),
-                    "artists": ", ".join(a["name"] for a in n.get("artists", [])),
-                    "art":     n_images[0]["url"] if n_images else "",
-                }
+                queue_items.append({
+                    "name":        n.get("name", ""),
+                    "artists":     ", ".join(a["name"] for a in n.get("artists", [])),
+                    "art":         n_images[0]["url"] if n_images else "",
+                    "duration_ms": n.get("duration_ms", 0),
+                })
     except Exception:
         pass
 
     return jsonify({
-        "playing":    data.get("is_playing", False),
+        "playing": data.get("is_playing", False),
+        "shuffle": data.get("shuffle_state", False),
+        "repeat":  data.get("repeat_state", "off"),
         "track": {
             "name":        item.get("name", ""),
             "artists":     ", ".join(a["name"] for a in item.get("artists", [])),
@@ -237,9 +240,9 @@ def now_playing():
             "duration_ms": item.get("duration_ms", 0),
             "progress_ms": data.get("progress_ms", 0),
         } if item else None,
-        "volume":     _alsa_get()[0],
-        "device":     (data.get("device") or {}).get("name", ""),
-        "next_track": next_track,
+        "volume": _alsa_get()[0],
+        "device": (data.get("device") or {}).get("name", ""),
+        "queue":  queue_items,
     })
 
 # ── Playback commands ──────────────────────────────────────────────────────────
@@ -282,6 +285,26 @@ def seek():
 def volume():
     vol = max(0, min(100, int(request.json.get("volume", 50))))
     _alsa_set(vol)
+    return jsonify({"ok": True})
+
+@app.post("/api/shuffle")
+def shuffle():
+    state = bool(request.json.get("state", False))
+    dev = _pi_device_id()
+    params = {"state": "true" if state else "false"}
+    if dev:
+        params["device_id"] = dev
+    _put("/me/player/shuffle", params=params)
+    return jsonify({"ok": True})
+
+@app.post("/api/repeat")
+def repeat():
+    state = request.json.get("state", "off")  # off, track, context
+    dev = _pi_device_id()
+    params = {"state": state}
+    if dev:
+        params["device_id"] = dev
+    _put("/me/player/repeat", params=params)
     return jsonify({"ok": True})
 
 # ── Playlists ──────────────────────────────────────────────────────────────────
@@ -349,6 +372,112 @@ def play_track():
         body["uris"] = [track_uri]
     _put("/me/player/play", params=params, json=body)
     return jsonify({"ok": True})
+
+@app.post("/api/play-context")
+def play_context():
+    context_uri = request.json.get("context_uri")
+    offset      = request.json.get("offset")
+    dev = _pi_device_id()
+    params = {"device_id": dev} if dev else {}
+    body: dict = {"context_uri": context_uri}
+    if offset is not None:
+        body["offset"] = {"position": offset}
+    _put("/me/player/play", params=params, json=body)
+    return jsonify({"ok": True})
+
+# ── Search ─────────────────────────────────────────────────────────────────────
+
+@app.get("/api/search")
+def search():
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"tracks": [], "albums": []})
+    resp = _get("/search", params={"q": q, "type": "track,album", "limit": 10})
+    if not resp.ok:
+        return jsonify({"error": "api_error"}), 502
+    data = resp.json()
+    tracks = []
+    for t in data.get("tracks", {}).get("items", []) or []:
+        images = (t.get("album") or {}).get("images") or []
+        tracks.append({
+            "id":          t.get("id", ""),
+            "name":        t.get("name", ""),
+            "artists":     ", ".join(a["name"] for a in t.get("artists", [])),
+            "art":         images[0]["url"] if images else "",
+            "uri":         t.get("uri", ""),
+            "duration_ms": t.get("duration_ms", 0),
+        })
+    albums = []
+    for a in data.get("albums", {}).get("items", []) or []:
+        images = a.get("images") or []
+        albums.append({
+            "id":      a.get("id", ""),
+            "name":    a.get("name", ""),
+            "artists": ", ".join(ar["name"] for ar in a.get("artists", [])),
+            "art":     images[0]["url"] if images else "",
+            "uri":     a.get("uri", ""),
+        })
+    return jsonify({"tracks": tracks, "albums": albums})
+
+@app.get("/api/recently-played")
+def recently_played():
+    resp = _get("/me/player/recently-played", params={"limit": 10})
+    if not resp.ok:
+        return jsonify([])
+    seen = set()
+    result = []
+    for item in resp.json().get("items", []):
+        track    = item.get("track") or {}
+        album    = track.get("album") or {}
+        album_id = album.get("id", "")
+        if not album_id or album_id in seen:
+            continue
+        seen.add(album_id)
+        images = album.get("images") or []
+        result.append({
+            "album_id":   album_id,
+            "album_name": album.get("name", ""),
+            "artists":    ", ".join(a["name"] for a in track.get("artists", [])),
+            "art":        images[0]["url"] if images else "",
+            "album_uri":  album.get("uri", ""),
+        })
+    return jsonify(result[:6])
+
+# ── Audio monitor ──────────────────────────────────────────────────────────────
+
+def _audio_monitor():
+    """Pause Spotify if ALSA DAC has been silent for 60s while Spotify says playing."""
+    inactive_since: float | None = None
+    THRESHOLD = 60.0
+    while True:
+        time.sleep(15)
+        try:
+            resp = _get("/me/player")
+            if resp.status_code != 200:
+                inactive_since = None
+                continue
+            if not resp.json().get("is_playing"):
+                inactive_since = None
+                continue
+            alsa_running = any(
+                "state: RUNNING" in p.read_text()
+                for p in Path("/proc/asound").glob("*/pcm0p/sub0/status")
+                if p.exists()
+            )
+            if alsa_running:
+                inactive_since = None
+            else:
+                if inactive_since is None:
+                    inactive_since = time.time()
+                elif time.time() - inactive_since >= THRESHOLD:
+                    print("[control] ALSA silent 60s while playing — auto-pausing", file=sys.stderr)
+                    dev = _pi_device_id()
+                    _put("/me/player/pause", params={"device_id": dev} if dev else {})
+                    inactive_since = None
+        except Exception as e:
+            print(f"[control] audio monitor: {e}", file=sys.stderr)
+
+threading.Thread(target=_audio_monitor, daemon=True).start()
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 

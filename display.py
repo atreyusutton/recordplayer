@@ -7,6 +7,7 @@ IPC: polls /tmp/now_playing.json written by onevent.sh
 """
 
 import os
+import subprocess
 import sys
 import json
 import time
@@ -30,6 +31,7 @@ FADE_DURATION = 0.5   # seconds
 POLL_INTERVAL = 1.0   # seconds
 COVER_TIMEOUT = 8     # seconds for HTTP requests
 COVER_CACHE_SIZE = 5  # number of cover surfaces to keep in memory
+SCREEN_BLANK_AFTER = 5 * 60  # seconds of no play before blanking screen
 
 
 # ── Cover loading ──────────────────────────────────────────────────────────────
@@ -93,6 +95,7 @@ class PlayerState:
         self._mtime: float = 0.0
         self._lock = threading.Lock()
         self.cover_surface: pygame.Surface | None = None
+        self._last_play_time: float = time.monotonic()  # init so screen starts on
 
     def poll(self) -> bool:
         """Check /tmp/now_playing.json for changes. Returns True if cover should update.
@@ -112,13 +115,20 @@ class PlayerState:
         except (json.JSONDecodeError, OSError):
             return False
         with self._lock:
-            if data.get("event") != "playing":
+            event = data.get("event")
+            if event == "playing":
+                self._last_play_time = time.monotonic()
+            if event != "playing":
                 return False
             new_url = data.get("cover_url", "")
             if new_url != self.cover_url:
                 self.cover_url = new_url
                 return True
         return False
+
+    @property
+    def idle_seconds(self) -> float:
+        return time.monotonic() - self._last_play_time
 
     def load_cover_async(self, url: str, callback):
         """Download cover art in a background thread; retry once on failure."""
@@ -148,6 +158,7 @@ def main():
     clock = pygame.time.Clock()
 
     state = PlayerState()
+    screen_is_on = True
 
     angle = 0.0
 
@@ -180,6 +191,16 @@ def main():
         now = time.monotonic()
         if now - last_poll >= POLL_INTERVAL:
             last_poll = now
+
+            # ── Screen blank / wake ──
+            should_blank = state.idle_seconds > SCREEN_BLANK_AFTER
+            if should_blank and screen_is_on:
+                subprocess.run(["vcgencmd", "display_power", "0"], check=False)
+                screen_is_on = False
+            elif not should_blank and not screen_is_on:
+                subprocess.run(["vcgencmd", "display_power", "1"], check=False)
+                screen_is_on = True
+
             if state.poll():
                 if state.cover_url:
                     state.load_cover_async(state.cover_url, on_cover_loaded)
