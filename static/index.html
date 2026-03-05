@@ -792,15 +792,42 @@
     if (n === 2 && !recentlyPlayedLoaded) loadRecentlyPlayed();
   }
 
-  // ── Swipe gesture ──────────────────────────────────────────────────────────
+  // ── Swipe + drag-to-scroll ─────────────────────────────────────────────────
+  // labwc mouseEmulation converts touch into pointer events, not scroll events,
+  // so we implement scrolling manually by finding the nearest scrollable ancestor.
   (function () {
     const outer = el('pages-outer');
-    let startX, startY;
+    let startX, startY, scrollEl, startScrollTop, didScroll;
+
+    function findScrollable(node) {
+      while (node && node !== outer) {
+        const oy = window.getComputedStyle(node).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+        node = node.parentElement;
+      }
+      return null;
+    }
+
     outer.addEventListener('pointerdown', e => {
-      startX = e.clientX;
-      startY = e.clientY;
+      startX        = e.clientX;
+      startY        = e.clientY;
+      didScroll     = false;
+      scrollEl      = findScrollable(e.target);
+      startScrollTop = scrollEl ? scrollEl.scrollTop : 0;
     }, { passive: true });
+
+    outer.addEventListener('pointermove', e => {
+      if (!scrollEl) return;
+      const dy = e.clientY - startY;
+      const dx = e.clientX - startX;
+      if (Math.abs(dy) > Math.abs(dx)) {          // clearly vertical
+        scrollEl.scrollTop = startScrollTop - dy;
+        didScroll = true;
+      }
+    }, { passive: true });
+
     outer.addEventListener('pointerup', e => {
+      if (didScroll) { didScroll = false; return; } // don't swipe after a scroll
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
@@ -808,6 +835,8 @@
         if (dx > 0 && currentPage > 0) goToPage(currentPage - 1);
       }
     }, { passive: true });
+
+    outer.addEventListener('pointercancel', () => { didScroll = false; scrollEl = null; });
   })();
 
   // ── Shuffle & Repeat ───────────────────────────────────────────────────────
