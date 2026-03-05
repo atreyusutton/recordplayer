@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!-- labwc display layout — copy to ~/.config/labwc/outputs.xml on the Pi -->
+<!-- HDMI-A-1: 720×720 round display (left) -->
+<!-- DSI-1:    800×480 touchscreen (right, starting at x=720) -->
+<labwc-outputs>
+  <output name="HDMI-A-1" x="0" y="0" />
+  <output name="DSI-1" x="720" y="120" />
+</labwc-outputs>

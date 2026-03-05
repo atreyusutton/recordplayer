@@ -1,0 +1,18 @@
+[Unit]
+Description=Record Player Control UI Kiosk (DSI touchscreen)
+After=graphical.target labwc.service control.service
+Wants=labwc.service
+Requires=control.service
+
+[Service]
+User=admin
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=HOME=/home/admin
+ExecStartPre=/bin/sh -c 'until [ -S /run/user/1000/wayland-0 ]; do sleep 0.1; done'
+ExecStart=/home/admin/apps/recordplayer/start-kiosk.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
