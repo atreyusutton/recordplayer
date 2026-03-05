@@ -39,20 +39,20 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
-      padding: 32px;
+      gap: 18px;
+      padding: 40px;
       text-align: center;
     }
-    #auth-screen h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-    #auth-screen p  { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 260px; }
+    #auth-screen h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    #auth-screen p  { color: var(--muted); font-size: 16px; line-height: 1.5; max-width: 320px; }
     #connect-btn {
-      margin-top: 6px;
+      margin-top: 8px;
       background: var(--green);
       color: #fff;
       border: none;
       border-radius: 500px;
-      padding: 12px 32px;
-      font-size: 15px;
+      padding: 14px 40px;
+      font-size: 18px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -66,7 +66,7 @@
       overflow: hidden;
     }
 
-    /* ── Pages outer (clips the sliding track) ── */
+    /* ── Pages outer ── */
     #pages-outer {
       flex: 1;
       min-height: 0;
@@ -97,14 +97,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 6px;
-      height: 24px;
+      gap: 8px;
+      height: 32px;
       flex-shrink: 0;
-      padding-bottom: 6px;
+      padding-bottom: 8px;
     }
     .dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--dim);
       cursor: pointer;
@@ -116,39 +116,39 @@
     #now-playing {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 12px 16px;
+      gap: 18px;
+      padding: 16px 24px;
       background: var(--bg);
       flex-shrink: 0;
     }
     #album-art {
-      width: 80px;
-      height: 80px;
-      border-radius: 6px;
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
       background: #1a1a1a;
       object-fit: cover;
       flex-shrink: 0;
     }
     #track-info { flex: 1; min-width: 0; }
     #track-name {
-      font-size: 16px;
+      font-size: 22px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     #track-artist {
-      font-size: 13px;
+      font-size: 16px;
       color: var(--muted);
-      margin-top: 3px;
+      margin-top: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     #track-album {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--dim);
-      margin-top: 2px;
+      margin-top: 3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -156,14 +156,14 @@
 
     /* ── Progress ── */
     #progress-section {
-      padding: 8px 16px 10px;
+      padding: 10px 24px 14px;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     #progress-track {
       width: 100%;
-      height: 3px;
+      height: 4px;
       background: #2a2a2a;
       border-radius: 2px;
       cursor: pointer;
@@ -172,7 +172,7 @@
     #progress-track::after {
       content: '';
       position: absolute;
-      inset: -8px 0;
+      inset: -10px 0;
     }
     #progress-fill {
       height: 100%;
@@ -185,9 +185,9 @@
     #progress-times {
       display: flex;
       justify-content: space-between;
-      font-size: 10px;
+      font-size: 13px;
       color: var(--dim);
-      margin-top: 5px;
+      margin-top: 6px;
       font-variant-numeric: tabular-nums;
     }
 
@@ -196,7 +196,7 @@
       display: flex;
       align-items: center;
       justify-content: space-evenly;
-      padding: 10px 16px;
+      padding: 14px 24px;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
@@ -206,7 +206,7 @@
       border: none;
       color: var(--dim);
       cursor: pointer;
-      padding: 8px;
+      padding: 12px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -215,14 +215,13 @@
     }
     .ctrl:active { background: #222; transform: scale(0.92); }
     .ctrl.primary {
-      width: 54px;
-      height: 54px;
+      width: 68px;
+      height: 68px;
       background: var(--green);
       color: #fff;
       padding: 0;
     }
     .ctrl.primary:active { background: #18a348; }
-    /* prev/next always visible */
     .ctrl.nav { color: var(--text); }
     .ctrl.active { color: var(--green); }
     .ctrl svg { display: block; }
@@ -233,14 +232,14 @@
       position: absolute;
       top: -3px;
       right: -4px;
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--green);
       line-height: 1;
       display: none;
     }
 
-    /* ── Queue section ── */
+    /* ── Queue section (player page — 1 item only) ── */
     #queue-section {
       flex: 1;
       min-height: 0;
@@ -253,11 +252,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 12px 6px 16px;
+      padding: 10px 16px 10px 24px;
       flex-shrink: 0;
     }
     #queue-label {
-      font-size: 9px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--dim);
       text-transform: uppercase;
@@ -266,14 +265,14 @@
     #volume-section {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .vol-icon { color: var(--dim); flex-shrink: 0; }
     input[type=range] {
       -webkit-appearance: none;
-      width: 90px;
+      width: 130px;
       min-width: 0;
-      height: 3px;
+      height: 4px;
       border-radius: 2px;
       background: #2a2a2a;
       outline: none;
@@ -288,26 +287,25 @@
     }
     #queue-scroll {
       flex: 1;
-      overflow-y: auto;
+      overflow: hidden;
     }
-    #queue-scroll::-webkit-scrollbar { display: none; }
     .queue-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 5px 12px 5px 16px;
+      gap: 14px;
+      padding: 10px 16px 10px 24px;
     }
     .queue-item img {
-      width: 30px;
-      height: 30px;
-      border-radius: 3px;
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
       object-fit: cover;
       flex-shrink: 0;
       background: #1a1a1a;
     }
     .queue-item-info { flex: 1; min-width: 0; }
     .queue-item-name {
-      font-size: 12px;
+      font-size: 16px;
       font-weight: 500;
       color: var(--muted);
       white-space: nowrap;
@@ -315,24 +313,23 @@
       text-overflow: ellipsis;
     }
     .queue-item-artist {
-      font-size: 11px;
+      font-size: 14px;
       color: var(--dim);
-      margin-top: 1px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .queue-item-dur {
-      font-size: 11px;
+      font-size: 14px;
       color: var(--dim);
       flex-shrink: 0;
       font-variant-numeric: tabular-nums;
     }
     .queue-empty {
-      padding: 16px;
-      font-size: 12px;
+      padding: 20px 24px;
+      font-size: 15px;
       color: var(--dim);
-      text-align: center;
     }
 
     /* ── Playlists page ── */
@@ -353,53 +350,53 @@
     #pl-list-scroll {
       flex: 1;
       overflow-y: auto;
-      padding: 8px 10px 12px;
+      padding: 10px 12px 16px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 10px;
       align-content: start;
     }
     #pl-list-scroll::-webkit-scrollbar { display: none; }
     .pl-card {
       background: var(--card);
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 10px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       cursor: pointer;
       min-width: 0;
       border: 1px solid var(--border);
     }
     .pl-card:active { background: #1a1a1a; }
     .pl-card img {
-      width: 48px;
-      height: 48px;
-      border-radius: 4px;
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
       object-fit: cover;
       flex-shrink: 0;
       background: #1a1a1a;
     }
     .pl-card-info { flex: 1; min-width: 0; }
     .pl-card-name {
-      font-size: 12px;
+      font-size: 15px;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .pl-card-count { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    .pl-card-count { font-size: 12px; color: var(--dim); margin-top: 3px; }
     .liked-card { grid-column: 1 / -1; }
     .liked-art {
-      width: 48px;
-      height: 48px;
-      border-radius: 4px;
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
       background: linear-gradient(135deg, #450af5 0%, #8e44ad 50%, #c4efd9 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      font-size: 22px;
+      font-size: 32px;
     }
     #pl-spinner {
       flex: 1;
@@ -407,13 +404,13 @@
       align-items: center;
       justify-content: center;
       color: var(--dim);
-      font-size: 13px;
+      font-size: 16px;
     }
     #pl-tracks-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
+      gap: 12px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
@@ -431,7 +428,7 @@
     #pl-tracks-title {
       flex: 1;
       min-width: 0;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
@@ -442,8 +439,8 @@
       border: none;
       color: #fff;
       border-radius: 500px;
-      padding: 6px 14px;
-      font-size: 12px;
+      padding: 8px 18px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       flex-shrink: 0;
@@ -461,42 +458,42 @@
       align-items: center;
       justify-content: center;
       color: var(--dim);
-      font-size: 13px;
+      font-size: 16px;
     }
     .track-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
+      gap: 14px;
+      padding: 12px 16px;
       cursor: pointer;
     }
     .track-row:active { background: #161616; }
     .track-row img {
-      width: 32px;
-      height: 32px;
-      border-radius: 3px;
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
       object-fit: cover;
       flex-shrink: 0;
       background: #1a1a1a;
     }
     .track-row-info { flex: 1; min-width: 0; }
     .track-row-name {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .track-row-artist {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--dim);
-      margin-top: 1px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .track-row-dur {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--dim);
       flex-shrink: 0;
       font-variant-numeric: tabular-nums;
@@ -504,7 +501,7 @@
 
     /* ── Search page ── */
     #search-bar {
-      padding: 10px 12px;
+      padding: 12px 16px;
       flex-shrink: 0;
       border-bottom: 1px solid var(--border);
     }
@@ -512,10 +509,10 @@
       width: 100%;
       background: #1a1a1a;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       color: var(--text);
-      padding: 8px 12px;
-      font-size: 14px;
+      padding: 10px 16px;
+      font-size: 18px;
       outline: none;
       font-family: inherit;
     }
@@ -526,54 +523,22 @@
     }
     #search-results::-webkit-scrollbar { display: none; }
     .results-label {
-      font-size: 9px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--dim);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      padding: 10px 12px 4px;
+      padding: 14px 16px 6px;
     }
     .result-track {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
+      gap: 14px;
+      padding: 10px 16px;
       cursor: pointer;
     }
     .result-track:active { background: #161616; }
     .result-track img {
-      width: 36px;
-      height: 36px;
-      border-radius: 3px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #1a1a1a;
-    }
-    .result-track-info { flex: 1; min-width: 0; }
-    .result-track-name {
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .result-track-artist {
-      font-size: 11px;
-      color: var(--dim);
-      margin-top: 1px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .result-album {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-    .result-album:active { background: #161616; }
-    .result-album img {
       width: 48px;
       height: 48px;
       border-radius: 4px;
@@ -581,16 +546,48 @@
       flex-shrink: 0;
       background: #1a1a1a;
     }
+    .result-track-info { flex: 1; min-width: 0; }
+    .result-track-name {
+      font-size: 16px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .result-track-artist {
+      font-size: 13px;
+      color: var(--dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .result-album {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    .result-album:active { background: #161616; }
+    .result-album img {
+      width: 64px;
+      height: 64px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #1a1a1a;
+    }
     .result-album-info { flex: 1; min-width: 0; }
     .result-album-name {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .result-album-artist {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--dim);
       margin-top: 2px;
       white-space: nowrap;
@@ -598,8 +595,8 @@
       text-overflow: ellipsis;
     }
     .search-empty {
-      padding: 24px 12px;
-      font-size: 12px;
+      padding: 32px 16px;
+      font-size: 15px;
       color: var(--dim);
       text-align: center;
     }
@@ -646,31 +643,31 @@
         <!-- Controls: shuffle | prev | play | next | repeat -->
         <div id="controls">
           <button class="ctrl" id="shuffle-btn" onclick="toggleShuffle()" aria-label="Shuffle">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
             </svg>
           </button>
           <button class="ctrl nav" onclick="skip('previous')" aria-label="Previous">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>
             </svg>
           </button>
           <button class="ctrl primary" id="play-btn" onclick="togglePlay()" aria-label="Play/Pause">
-            <svg id="play-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <svg id="play-icon" width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
             </svg>
-            <svg id="pause-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+            <svg id="pause-icon" width="34" height="34" viewBox="0 0 24 24" fill="currentColor" style="display:none">
               <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
             </svg>
           </button>
           <button class="ctrl nav" onclick="skip('next')" aria-label="Next">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/>
             </svg>
           </button>
           <button class="ctrl" id="repeat-btn" onclick="cycleRepeat()" aria-label="Repeat">
             <div id="repeat-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
               </svg>
               <span id="repeat-badge">1</span>
@@ -683,7 +680,7 @@
           <div id="queue-header">
             <span id="queue-label">Up Next</span>
             <div id="volume-section">
-              <svg class="vol-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <svg class="vol-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
               </svg>
               <input type="range" id="vol-slider" min="0" max="100" value="50"
@@ -707,7 +704,7 @@
           <div id="pl-tracks-view">
             <div id="pl-tracks-header">
               <button id="pl-back-btn" onclick="showPlaylists()" aria-label="Back">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                 </svg>
               </button>
@@ -853,7 +850,7 @@
       scroll.innerHTML = '<div class="queue-empty">Nothing in queue</div>';
       return;
     }
-    scroll.innerHTML = queue.map(t => `
+    scroll.innerHTML = queue.slice(0, 1).map(t => `
       <div class="queue-item">
         <img src="${escHtml(t.art)}" alt=""
              onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
