@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- labwc input + window rules — deployed to ~/.config/labwc/rc.xml -->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <!-- Touch input mapping -->
+  <touch deviceName="Waveshare-034-HD Waveshare-034-HD" mapToOutput="HDMI-A-2" mouseEmulation="yes"/>
+  <touch deviceName="10-0038 generic ft5x06 (00)" mapToOutput="DSI-1" mouseEmulation="yes"/>
+
+  <!-- Window rules: send Chromium to the DSI touchscreen -->
+  <windowRules>
+    <windowRule identifier="chromium*">
+      <action name="MoveToOutput" output="DSI-1"/>
+    </windowRule>
+  </windowRules>
+</openbox_config>

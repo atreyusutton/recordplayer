@@ -14,20 +14,8 @@ for i in $(seq 1 30); do
     sleep 1
 done
 
-# Find DSI-1 x-position in the Wayland virtual screen via wlr-randr.
-# Falls back to 720 (right of the 720-wide round HDMI display) if not found.
-X=720; Y=0
-if command -v wlr-randr &>/dev/null; then
-    COORDS=$(wlr-randr 2>/dev/null | awk '
-        /^DSI-1/          { found=1 }
-        found && /Position:/ { print $2; found=0 }
-    ')
-    if [[ -n "$COORDS" ]]; then
-        X="${COORDS%%,*}"
-        Y="${COORDS##*,}"
-    fi
-fi
-
+# labwc window rule in rc.xml handles placing Chromium on DSI-1 —
+# --window-position is ignored on Wayland so we don't pass it.
 exec "$CHROMIUM" \
     --kiosk \
     --ozone-platform=wayland \
@@ -39,6 +27,4 @@ exec "$CHROMIUM" \
     --check-for-update-interval=31536000 \
     --disable-features=TranslateUI \
     --overscroll-history-navigation=0 \
-    --window-position="${X},${Y}" \
-    --window-size=800,480 \
     http://localhost:8080

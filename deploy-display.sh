@@ -51,8 +51,8 @@ if [[ "${1:-}" == "--local" ]]; then
     systemctl enable knob.service
     systemctl enable control-kiosk.service
 
-    # labwc display layout (positions round HDMI at 0,0 and DSI at 720,120)
-    echo "=== Configuring labwc display layout ==="
+    # labwc config (display layout + window rules + touch mapping)
+    echo "=== Configuring labwc ==="
     LABWC_CFG=/home/admin/.config/labwc
     mkdir -p "$LABWC_CFG"
     if [[ ! -f "$LABWC_CFG/outputs.xml" ]]; then
@@ -60,8 +60,11 @@ if [[ "${1:-}" == "--local" ]]; then
         chown admin:admin "$LABWC_CFG/outputs.xml"
         echo "    Wrote $LABWC_CFG/outputs.xml"
     else
-        echo "    $LABWC_CFG/outputs.xml already exists — skipping (edit manually if needed)"
+        echo "    $LABWC_CFG/outputs.xml already exists — skipping"
     fi
+    cp "$SCRIPT_DIR/labwc-rc.xml" "$LABWC_CFG/rc.xml"
+    chown admin:admin "$LABWC_CFG/rc.xml"
+    echo "    Wrote $LABWC_CFG/rc.xml"
 
     # Install Chromium if missing
     if ! command -v chromium-browser &>/dev/null && ! command -v chromium &>/dev/null; then
