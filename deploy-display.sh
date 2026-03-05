@@ -44,14 +44,15 @@ if [[ "${1:-}" == "--local" ]]; then
     cp "$SCRIPT_DIR/record-display.service"  /etc/systemd/system/record-display.service
     cp "$SCRIPT_DIR/control.service"         /etc/systemd/system/control.service
     cp "$SCRIPT_DIR/knob.service"            /etc/systemd/system/knob.service
-    cp "$SCRIPT_DIR/control-kiosk.service"   /etc/systemd/system/control-kiosk.service
     systemctl daemon-reload
     systemctl enable record-display.service
     systemctl enable control.service
     systemctl enable knob.service
-    systemctl enable control-kiosk.service
+    # Disable old systemd kiosk service — labwc autostart handles Chromium now
+    systemctl disable control-kiosk.service 2>/dev/null || true
+    systemctl stop    control-kiosk.service 2>/dev/null || true
 
-    # labwc config (display layout + window rules + touch mapping)
+    # labwc config (display layout + window rules + touch mapping + autostart)
     echo "=== Configuring labwc ==="
     LABWC_CFG=/home/admin/.config/labwc
     mkdir -p "$LABWC_CFG"
@@ -62,9 +63,12 @@ if [[ "${1:-}" == "--local" ]]; then
     else
         echo "    $LABWC_CFG/outputs.xml already exists — skipping"
     fi
-    cp "$SCRIPT_DIR/labwc-rc.xml" "$LABWC_CFG/rc.xml"
-    chown admin:admin "$LABWC_CFG/rc.xml"
+    cp "$SCRIPT_DIR/labwc-rc.xml"     "$LABWC_CFG/rc.xml"
+    cp "$SCRIPT_DIR/labwc-autostart"  "$LABWC_CFG/autostart"
+    chmod +x "$LABWC_CFG/autostart"
+    chown admin:admin "$LABWC_CFG/rc.xml" "$LABWC_CFG/autostart"
     echo "    Wrote $LABWC_CFG/rc.xml"
+    echo "    Wrote $LABWC_CFG/autostart"
 
     # Install Chromium if missing
     if ! command -v chromium-browser &>/dev/null && ! command -v chromium &>/dev/null; then
@@ -98,17 +102,19 @@ if [[ "${1:-}" == "--local" ]]; then
         echo "    Write credentials to $APP_DIR/config.json then: sudo systemctl start control"
     fi
     systemctl restart knob
-    systemctl restart control-kiosk
 
     echo ""
     echo "Done! Check status with:"
     echo "  sudo systemctl status record-display"
     echo "  sudo systemctl status control"
     echo "  sudo systemctl status knob"
-    echo "  sudo systemctl status control-kiosk"
     echo "  sudo journalctl -u record-display -f"
     echo "  sudo journalctl -u control -f"
-    echo "  sudo journalctl -u control-kiosk -f"
+    echo ""
+    echo "Chromium kiosk is now managed by labwc autostart (~/.config/labwc/autostart)."
+    echo "It will launch automatically on next login/reboot."
+    echo "To start it now without rebooting, run as admin:"
+    echo "  WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 bash ~/.config/labwc/autostart"
     echo ""
     echo "Play a track on Spotify to test."
 
