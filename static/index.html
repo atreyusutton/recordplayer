@@ -747,10 +747,34 @@
 
 <script>
   // ── Encoder keyboard navigation ────────────────────────────────────────────
-  // Enter key on a focused div (pl-card, track-row, result, dot) triggers click
   document.addEventListener('keydown', e => {
+    // Enter on a focused div triggers its click (push to select)
     if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'DIV') {
       document.activeElement.click();
+      return;
+    }
+
+    // Tab: custom no-wrap navigation scoped to the active panel
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+
+    // Determine the active focus container (accounts for playlist inner panel)
+    let container;
+    if (currentPage === 1) {
+      const inTracks = el('pl-pages').style.transform === 'translateX(-50%)';
+      container = el(inTracks ? 'pl-tracks-view' : 'pl-list-view');
+    } else {
+      container = el(pageIds[currentPage]);
+    }
+
+    const focusable = [...container.querySelectorAll('button:not([disabled]), [tabindex="0"]')];
+    if (focusable.length === 0) return;
+
+    const idx = focusable.indexOf(document.activeElement);
+    if (e.shiftKey) {
+      if (idx > 0) focusable[idx - 1].focus();          // stop at first, no wrap
+    } else {
+      if (idx < focusable.length - 1) focusable[idx + 1].focus(); // stop at last, no wrap
     }
   });
 
@@ -1065,6 +1089,7 @@
         <div class="track-row-dur">${fmt(t.duration_ms)}</div>
       </div>
     `).join('');
+    el('pl-back-btn').focus();
   }
 
   function showPlaylists() {
