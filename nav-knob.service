@@ -3,7 +3,8 @@ Description=Navigation Rotary Encoder (Tab/Enter UI navigation)
 After=graphical.target
 
 [Service]
-User=admin
+User=root
+WorkingDirectory=/tmp
 ExecStart=/usr/bin/python3 /home/admin/apps/recordplayer/nav-knob.py
 Restart=always
 RestartSec=3
