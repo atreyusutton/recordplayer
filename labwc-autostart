@@ -4,6 +4,10 @@
 
 CHROMIUM=$(command -v chromium-browser 2>/dev/null || command -v chromium 2>/dev/null)
 
+# Put DSI-1 (ribbon UI screen) at origin so it's the default for new windows
+# HDMI-A-2 (round album art display) sits to the right at 800,0
+wlr-randr --output DSI-1 --pos 0,0 --output HDMI-A-2 --pos 800,0
+
 # Wait for Flask backend (up to 60 s)
 for i in $(seq 1 60); do
     curl -s http://localhost:8080 >/dev/null 2>&1 && break
