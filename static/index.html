@@ -226,6 +226,10 @@
     .ctrl.active { color: var(--green); }
     .ctrl svg { display: block; }
 
+    /* Keyboard/encoder focus ring */
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 6px; }
+    .ctrl:focus-visible { border-radius: 50%; }
+
     /* Repeat badge "1" */
     #repeat-wrap { position: relative; display: flex; }
     #repeat-badge {
@@ -692,7 +696,7 @@
       </div><!-- /page-player -->
 
       <!-- Page 1: Playlists -->
-      <div id="page-playlists">
+      <div id="page-playlists" inert>
         <div id="pl-pages">
 
           <div id="pl-list-view">
@@ -718,7 +722,7 @@
       </div><!-- /page-playlists -->
 
       <!-- Page 2: Search -->
-      <div id="page-search">
+      <div id="page-search" inert>
         <div id="search-bar">
           <input id="search-input" type="text" placeholder="Search tracks, albums…"
                  oninput="onSearchInput()"
@@ -734,14 +738,22 @@
 
   <!-- Page dots (3) -->
   <div id="page-dots">
-    <div class="dot active" onclick="goToPage(0)"></div>
-    <div class="dot"        onclick="goToPage(1)"></div>
-    <div class="dot"        onclick="goToPage(2)"></div>
+    <div class="dot active" tabindex="0" onclick="goToPage(0)"></div>
+    <div class="dot"        tabindex="0" onclick="goToPage(1)"></div>
+    <div class="dot"        tabindex="0" onclick="goToPage(2)"></div>
   </div>
 
 </div><!-- /main-ui -->
 
 <script>
+  // ── Encoder keyboard navigation ────────────────────────────────────────────
+  // Enter key on a focused div (pl-card, track-row, result, dot) triggers click
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'DIV') {
+      document.activeElement.click();
+    }
+  });
+
   // ── State ──────────────────────────────────────────────────────────────────
   let playing      = false;
   let progressMs   = 0;
@@ -784,9 +796,21 @@
   }
 
   // ── Page navigation ────────────────────────────────────────────────────────
+  const pageIds = ['page-player', 'page-playlists', 'page-search'];
+
   function goToPage(n) {
     currentPage = n;
     el('pages').style.transform = n === 0 ? '' : `translateX(${-n / 3 * 100}%)`;
+    pageIds.forEach((id, i) => {
+      const pg = el(id);
+      if (i === n) {
+        pg.removeAttribute('inert');
+        const first = pg.querySelector('button, [tabindex="0"]');
+        if (first) first.focus();
+      } else {
+        pg.setAttribute('inert', '');
+      }
+    });
     document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === n));
     if (n === 1 && !playlistsLoaded) loadPlaylists();
     if (n === 2 && !recentlyPlayedLoaded) loadRecentlyPlayed();
@@ -961,7 +985,7 @@
     const scroll = el('pl-list-scroll');
     scroll.style.display = '';
     const likedCard = `
-      <div class="pl-card liked-card" onclick="openLikedSongs()">
+      <div class="pl-card liked-card" tabindex="0" onclick="openLikedSongs()">
         <div class="liked-art">♥</div>
         <div class="pl-card-info">
           <div class="pl-card-name">Liked Songs</div>
@@ -969,7 +993,7 @@
         </div>
       </div>`;
     scroll.innerHTML = likedCard + items.map(p => `
-      <div class="pl-card" onclick="openPlaylist('${escStr(p.id)}','${escStr(p.name)}')">
+      <div class="pl-card" tabindex="0" onclick="openPlaylist('${escStr(p.id)}','${escStr(p.name)}')">
         <img src="${escHtml(p.art)}" alt=""
              onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
         <div class="pl-card-info">
@@ -1031,7 +1055,7 @@
     const scroll = el('pl-tracks-scroll');
     scroll.style.display = '';
     scroll.innerHTML = tracks.map((t, i) => `
-      <div class="track-row" onclick="playTrack('${escStr(t.uri)}',${i})">
+      <div class="track-row" tabindex="0" onclick="playTrack('${escStr(t.uri)}',${i})">
         <img src="${escHtml(t.art)}" alt=""
              onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
         <div class="track-row-info">
@@ -1097,7 +1121,7 @@
     results.innerHTML =
       '<div class="results-label">Recently Played</div>' +
       items.map(a => `
-        <div class="result-album" onclick="playContext('${escStr(a.album_uri)}')">
+        <div class="result-album" tabindex="0" onclick="playContext('${escStr(a.album_uri)}')">
           <img src="${escHtml(a.art)}" alt=""
                onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
           <div class="result-album-info">
@@ -1146,7 +1170,7 @@
     if (tracks.length > 0) {
       html += '<div class="results-label">Tracks</div>';
       html += tracks.map(t => `
-        <div class="result-track" onclick="playSearchTrack('${escStr(t.uri)}')">
+        <div class="result-track" tabindex="0" onclick="playSearchTrack('${escStr(t.uri)}')">
           <img src="${escHtml(t.art)}" alt=""
                onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
           <div class="result-track-info">
@@ -1159,7 +1183,7 @@
     if (albums.length > 0) {
       html += '<div class="results-label">Albums</div>';
       html += albums.map(a => `
-        <div class="result-album" onclick="playContext('${escStr(a.uri)}')">
+        <div class="result-album" tabindex="0" onclick="playContext('${escStr(a.uri)}')">
           <img src="${escHtml(a.art)}" alt=""
                onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
           <div class="result-album-info">
