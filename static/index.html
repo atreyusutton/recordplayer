@@ -754,7 +754,7 @@
       return;
     }
 
-    // Tab: custom no-wrap navigation scoped to the active panel
+    // Tab: custom no-wrap navigation scoped to the active panel + page dots
     if (e.key !== 'Tab') return;
     e.preventDefault();
 
@@ -767,14 +767,17 @@
       container = el(pageIds[currentPage]);
     }
 
-    const focusable = [...container.querySelectorAll('button:not([disabled]), [tabindex="0"]')];
+    // Page content + dots appended so encoder can always reach page switcher
+    const inPage = [...container.querySelectorAll('button:not([disabled]), [tabindex="0"]')];
+    const dots   = [...el('page-dots').querySelectorAll('[tabindex="0"]')];
+    const focusable = [...inPage, ...dots];
     if (focusable.length === 0) return;
 
     const idx = focusable.indexOf(document.activeElement);
     if (e.shiftKey) {
-      if (idx > 0) focusable[idx - 1].focus();          // stop at first, no wrap
+      if (idx > 0) focusable[idx - 1].focus();
     } else {
-      if (idx < focusable.length - 1) focusable[idx + 1].focus(); // stop at last, no wrap
+      if (idx < focusable.length - 1) focusable[idx + 1].focus();
     }
   });
 
@@ -829,7 +832,13 @@
       const pg = el(id);
       if (i === n) {
         pg.removeAttribute('inert');
-        const first = pg.querySelector('button, [tabindex="0"]');
+        // For playlists, scope focus to the visible inner panel, not the whole page
+        let focusRoot = pg;
+        if (n === 1) {
+          const inTracks = el('pl-pages').style.transform === 'translateX(-50%)';
+          focusRoot = el(inTracks ? 'pl-tracks-view' : 'pl-list-view');
+        }
+        const first = focusRoot.querySelector('button, [tabindex="0"]');
         if (first) first.focus();
       } else {
         pg.setAttribute('inert', '');
