@@ -16,16 +16,14 @@ GPIO.setup(SW,  GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 ui = UInput()
 
-def send_tab():
-    ui.write(e.EV_KEY, e.KEY_TAB, 1)
-    ui.write(e.EV_KEY, e.KEY_TAB, 0)
+def send_next():
+    ui.write(e.EV_KEY, e.KEY_RIGHT, 1)
+    ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
     ui.syn()
 
-def send_shift_tab():
-    ui.write(e.EV_KEY, e.KEY_LEFTSHIFT, 1)
-    ui.write(e.EV_KEY, e.KEY_TAB, 1)
-    ui.write(e.EV_KEY, e.KEY_TAB, 0)
-    ui.write(e.EV_KEY, e.KEY_LEFTSHIFT, 0)
+def send_prev():
+    ui.write(e.EV_KEY, e.KEY_LEFT, 1)
+    ui.write(e.EV_KEY, e.KEY_LEFT, 0)
     ui.syn()
 
 def send_enter():
@@ -51,14 +49,15 @@ try:
             if clk == 0 and (now - last_tick) > 0.005:
                 last_tick = now
                 if dt != clk:
-                    send_tab()        # clockwise → next element
+                    send_next()   # clockwise → next element
                 else:
-                    send_shift_tab()  # counter-clockwise → prev element
+                    send_prev()   # counter-clockwise → prev element
 
         # Button press — falling edge on SW, debounced 300 ms
+        # Also ignore presses within 200 ms of last rotation (prevents mechanical coupling)
         if sw != last_sw:
             last_sw = sw
-            if sw == 0 and (now - last_sw_time) > 0.3:
+            if sw == 0 and (now - last_sw_time) > 0.3 and (now - last_tick) > 0.2:
                 last_sw_time = now
                 send_enter()
 

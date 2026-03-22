@@ -754,8 +754,8 @@
       return;
     }
 
-    // Tab: custom no-wrap navigation scoped to the active panel + page dots
-    if (e.key !== 'Tab') return;
+    // ArrowRight/Left: encoder rotation navigation (no browser default behavior to worry about)
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     e.preventDefault();
 
     // Determine the active focus container (accounts for playlist inner panel)
@@ -774,7 +774,7 @@
     if (focusable.length === 0) return;
 
     const idx = focusable.indexOf(document.activeElement);
-    if (e.shiftKey) {
+    if (e.key === 'ArrowLeft') {
       if (idx > 0) focusable[idx - 1].focus();
     } else {
       if (idx < focusable.length - 1) focusable[idx + 1].focus();
