@@ -11,10 +11,12 @@ for i in $(seq 1 60); do
 done
 
 # Launch Chromium in a restart loop (runs in background so labwc init isn't blocked)
+# --user-data-dir isolates this instance so it never piggybacks on another session.
 (while true; do
     "$CHROMIUM" \
         --kiosk \
         --ozone-platform=wayland \
+        --user-data-dir=/tmp/chromium-kiosk \
         --noerrdialogs \
         --disable-infobars \
         --no-first-run \
@@ -23,6 +25,7 @@ done
         --check-for-update-interval=31536000 \
         --disable-features=TranslateUI \
         --overscroll-history-navigation=0 \
+        --password-store=basic \
         http://localhost:8080
-    sleep 3
+    sleep 5
 done) &
