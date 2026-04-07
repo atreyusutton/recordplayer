@@ -1371,8 +1371,52 @@
   }
   connectVolStream();
 
+  // ── Nav knob SSE (bypasses Wayland focus) ──────────────────────────────────
+  function handleNav(action) {
+    if (action === 'enter' && document.activeElement && document.activeElement.tagName === 'DIV') {
+      document.activeElement.click();
+      return;
+    }
+    if (action === 'next' || action === 'prev') {
+      let container;
+      if (currentPage === 1) {
+        const inTracks = el('pl-pages').style.transform === 'translateX(-50%)';
+        container = el(inTracks ? 'pl-tracks-view' : 'pl-list-view');
+      } else {
+        container = el(pageIds[currentPage]);
+      }
+      const inPage = [...container.querySelectorAll('button:not([disabled]), [tabindex="0"]')];
+      const dots   = [...el('page-dots').querySelectorAll('[tabindex="0"]')];
+      const focusable = [...inPage, ...dots];
+      if (focusable.length === 0) return;
+      const idx = focusable.indexOf(document.activeElement);
+      if (action === 'prev') {
+        if (idx > 0) focusable[idx - 1].focus();
+      } else {
+        if (idx < focusable.length - 1) focusable[idx + 1].focus();
+      }
+    }
+  }
+
+  let navSource = null;
+  function connectNavStream() {
+    if (navSource) navSource.close();
+    navSource = new EventSource('/api/nav-stream');
+    navSource.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.action) handleNav(d.action);
+      } catch {}
+    };
+    navSource.onerror = () => {
+      navSource.close();
+      setTimeout(connectNavStream, 2000);
+    };
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────────
   startPolling();
+  connectNavStream();
 </script>
 </body>
 </html>

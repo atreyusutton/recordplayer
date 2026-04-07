@@ -256,6 +256,27 @@ def volume_stream():
             time.sleep(0.05)  # check file 20 times/sec
     return app.response_class(_generate(), mimetype='text/event-stream')
 
+NAV_FILE = Path("/tmp/recordplayer_nav")
+
+@app.get("/api/nav-stream")
+def nav_stream():
+    """SSE stream — pushes nav knob events (next/prev/enter) to the UI."""
+    def _generate():
+        last_mtime = 0.0
+        while True:
+            try:
+                mtime = NAV_FILE.stat().st_mtime
+                if mtime != last_mtime:
+                    last_mtime = mtime
+                    data = NAV_FILE.read_text().strip()
+                    yield f"data: {data}\n\n"
+            except FileNotFoundError:
+                pass
+            except Exception:
+                pass
+            time.sleep(0.03)  # ~33Hz check
+    return app.response_class(_generate(), mimetype='text/event-stream')
+
 @app.post("/api/wake")
 def wake():
     """Touch screen tap or UI interaction triggers wake from sleep."""
