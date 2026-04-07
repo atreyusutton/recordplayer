@@ -23,6 +23,7 @@ from pathlib import Path
 from gpiozero import RotaryEncoder, Button
 
 WAKE_FILE = Path("/tmp/recordplayer_wake")
+VOL_FILE  = Path("/tmp/recordplayer_volume")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CLK  = 23   # GPIO BCM number
@@ -62,6 +63,10 @@ def _set_volume(vol: int):
     global _current_vol
     _current_vol = max(MIN_VOLUME, min(MAX_VOLUME, vol))
     _amixer_all(f"{_current_vol}%")
+    try:
+        VOL_FILE.write_text(str(_current_vol))
+    except OSError:
+        pass
 
 
 def _set_boot_volume():
@@ -104,6 +109,10 @@ def toggle_mute():
     if _muted:
         _pre_mute_vol = _current_vol
         _amixer_all("0%")
+        try:
+            VOL_FILE.write_text("0")
+        except OSError:
+            pass
     else:
         _set_volume(_pre_mute_vol)
     log.info("mute %s", "ON" if _muted else "off")

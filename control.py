@@ -225,6 +225,17 @@ def _trigger_wake():
 def index():
     return send_file(BASE / "static" / "index.html")
 
+VOL_FILE = Path("/tmp/recordplayer_volume")
+
+@app.get("/api/volume-level")
+def volume_level():
+    """Fast volume read from file written by knob.py — no subprocess."""
+    try:
+        vol = int(VOL_FILE.read_text().strip())
+    except (FileNotFoundError, ValueError):
+        vol, _ = _alsa_get()
+    return jsonify({"volume": vol})
+
 @app.post("/api/wake")
 def wake():
     """Touch screen tap or UI interaction triggers wake from sleep."""

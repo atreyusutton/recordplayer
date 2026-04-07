@@ -1354,6 +1354,18 @@
     }, 5000);
   }
 
+  // ── Fast volume poll (reads knob file, no Spotify API) ─────────────────────
+  let volPollTimer = null;
+  async function pollVolume() {
+    if (isSleeping) return;
+    try {
+      const r = await fetch('/api/volume-level');
+      const d = await r.json();
+      if (d.volume != null) { el('vol-slider').value = d.volume; setVolBg(d.volume); }
+    } catch {}
+  }
+  volPollTimer = setInterval(pollVolume, 250);
+
   // ── Boot ───────────────────────────────────────────────────────────────────
   startPolling();
 </script>
