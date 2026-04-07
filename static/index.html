@@ -1355,7 +1355,7 @@
     }, 5000);
   }
 
-  // ── Combined knob SSE stream (volume + nav in one connection) ──────────────
+  // ── Fast knob poll (volume + nav in one request) ───────────────────────────
 
   // ── Nav knob SSE (bypasses Wayland focus) ──────────────────────────────────
   function handleNav(action) {
@@ -1384,29 +1384,19 @@
     }
   }
 
-  let knobSource = null;
-  function connectKnobStream() {
-    if (knobSource) knobSource.close();
-    knobSource = new EventSource('/api/knob-stream');
-    knobSource.addEventListener('vol', (e) => {
-      const v = parseInt(e.data);
-      if (!isNaN(v)) { el('vol-slider').value = v; setVolBg(v); }
-    });
-    knobSource.addEventListener('nav', (e) => {
-      try {
-        const d = JSON.parse(e.data);
-        if (d.action) handleNav(d.action);
-      } catch {}
-    });
-    knobSource.onerror = () => {
-      knobSource.close();
-      setTimeout(connectKnobStream, 2000);
-    };
+  async function pollKnobs() {
+    if (isSleeping) return;
+    try {
+      const r = await fetch('/api/knob-poll');
+      const d = await r.json();
+      if (d.volume != null) { el('vol-slider').value = d.volume; setVolBg(d.volume); }
+      if (d.nav) handleNav(d.nav.action);
+    } catch {}
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   startPolling();
-  connectKnobStream();
+  setInterval(pollKnobs, 100);
 </script>
 </body>
 </html>

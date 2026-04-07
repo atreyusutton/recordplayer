@@ -237,35 +237,26 @@ def volume_level():
     return jsonify({"volume": vol})
 
 NAV_FILE = Path("/tmp/recordplayer_nav")
+_nav_mtime: float = 0.0
 
-@app.get("/api/knob-stream")
-def knob_stream():
-    """Single SSE stream for both volume and nav events."""
-    def _generate():
-        vol_mtime = 0.0
-        nav_mtime = 0.0
-        last_vol = None
-        while True:
-            try:
-                mt = VOL_FILE.stat().st_mtime
-                if mt != vol_mtime:
-                    vol_mtime = mt
-                    vol = int(VOL_FILE.read_text().strip())
-                    if vol != last_vol:
-                        last_vol = vol
-                        yield f"event: vol\ndata: {vol}\n\n"
-            except Exception:
-                pass
-            try:
-                mt = NAV_FILE.stat().st_mtime
-                if mt != nav_mtime:
-                    nav_mtime = mt
-                    data = NAV_FILE.read_text().strip()
-                    yield f"event: nav\ndata: {data}\n\n"
-            except Exception:
-                pass
-            time.sleep(0.03)
-    return app.response_class(_generate(), mimetype='text/event-stream')
+@app.get("/api/knob-poll")
+def knob_poll():
+    """Fast poll endpoint — returns volume + nav event if changed."""
+    global _nav_mtime
+    vol = None
+    try:
+        vol = int(VOL_FILE.read_text().strip())
+    except Exception:
+        pass
+    nav = None
+    try:
+        mt = NAV_FILE.stat().st_mtime
+        if mt != _nav_mtime:
+            _nav_mtime = mt
+            nav = json.loads(NAV_FILE.read_text().strip())
+    except Exception:
+        pass
+    return jsonify({"volume": vol, "nav": nav})
 
 @app.post("/api/wake")
 def wake():
