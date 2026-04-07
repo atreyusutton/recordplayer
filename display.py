@@ -31,7 +31,7 @@ NOW_PLAYING_PATH = Path("/tmp/now_playing.json")
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE = Path("/tmp/recordplayer_wake")
 CONTROL_API = "http://localhost:8080/api/now-playing"
-FADE_DURATION = 0.5   # seconds
+FADE_DURATION = 1.2   # seconds
 POLL_INTERVAL = 1.0   # seconds
 API_POLL_INTERVAL = 3.0  # seconds — poll Spotify API for non-local playback
 COVER_TIMEOUT = 8     # seconds for HTTP requests
@@ -81,6 +81,13 @@ def rotate_and_crop(source: pygame.Surface, angle: float) -> pygame.Surface:
     cropped = pygame.Surface((DISPLAY_SIZE, DISPLAY_SIZE))
     cropped.blit(rotated, (0, 0), pygame.Rect(x, y, DISPLAY_SIZE, DISPLAY_SIZE))
     return cropped
+
+
+def _ease_in_out(t: float) -> float:
+    """Smooth ease-in-out (cubic). t in [0,1] → [0,1]."""
+    if t < 0.5:
+        return 4 * t * t * t
+    return 1 - (-2 * t + 2) ** 3 / 2
 
 
 def _screen_power(on: bool):
@@ -204,7 +211,7 @@ def main():
     # Cross-fade state
     fade_active = False
     fade_start = 0.0
-    fade_old_surf: pygame.Surface | None = None
+    fade_old_source: pygame.Surface | None = None
     new_cover_pending: pygame.Surface | None = None
 
     last_poll = 0.0
@@ -297,15 +304,14 @@ def main():
         # ── Swap in newly downloaded cover ──
         if new_cover_pending is not None:
             if fade_active:
-                state.cover_surface = new_cover_pending
-                new_cover_pending = None
-                fade_active = False
+                # Second track arrived mid-fade — start fresh fade from current blend
+                fade_old_source = state.cover_surface
             else:
-                fade_old_surf = rotate_and_crop(state.cover_surface, angle) if state.cover_surface else None
-                state.cover_surface = new_cover_pending
-                new_cover_pending = None
-                fade_active = True
-                fade_start = time.monotonic()
+                fade_old_source = state.cover_surface  # may be None on first track
+            state.cover_surface = new_cover_pending
+            new_cover_pending = None
+            fade_active = True
+            fade_start = time.monotonic()
 
         # ── Rotation (negative = clockwise, matching a real record) ──
         angle = (angle - DEG_PER_FRAME) % 360
@@ -318,16 +324,20 @@ def main():
 
             if fade_active:
                 elapsed = time.monotonic() - fade_start
-                alpha = min(elapsed / FADE_DURATION, 1.0)
-                if alpha >= 1.0:
+                t = min(elapsed / FADE_DURATION, 1.0)
+                alpha = _ease_in_out(t)
+                if t >= 1.0:
                     fade_active = False
-                    fade_old_surf = None
+                    fade_old_source = None
 
-                if fade_old_surf is not None and alpha < 1.0:
-                    screen.blit(fade_old_surf, (0, 0))
-                    new_alpha_surf = current_frame.copy().convert_alpha()
-                    new_alpha_surf.set_alpha(int(alpha * 255))
-                    screen.blit(new_alpha_surf, (0, 0))
+                if fade_old_source is not None and t < 1.0:
+                    # Both old and new art rotate together during crossfade
+                    old_frame = rotate_and_crop(fade_old_source, angle)
+                    old_frame.set_alpha(int((1.0 - alpha) * 255))
+                    current_frame = current_frame.copy().convert_alpha()
+                    current_frame.set_alpha(int(alpha * 255))
+                    screen.blit(old_frame, (0, 0))
+                    screen.blit(current_frame, (0, 0))
                 else:
                     screen.blit(current_frame, (0, 0))
             else:
