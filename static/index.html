@@ -1250,8 +1250,40 @@
     setTimeout(poll, 600);
   }
 
+  // ── Sleep/wake ─────────────────────────────────────────────────────────────
+  let isSleeping = false;
+  let pollTimer = null;
+
+  async function checkSleep() {
+    try {
+      const r = await fetch('/api/sleep-status');
+      const d = await r.json();
+      return d.sleeping;
+    } catch { return false; }
+  }
+
+  async function triggerWake() {
+    if (!isSleeping) return;
+    try { await fetch('/api/wake', { method: 'POST' }); } catch {}
+    isSleeping = false;
+    startPolling();
+  }
+
+  // Wake on any touch/click interaction
+  document.addEventListener('touchstart', triggerWake, { once: false, passive: true });
+  document.addEventListener('click', triggerWake, { once: false });
+
   // ── Now-playing poll ───────────────────────────────────────────────────────
   async function poll() {
+    // Check sleep status periodically
+    const sleeping = await checkSleep();
+    if (sleeping && !isSleeping) {
+      isSleeping = true;
+      stopPolling();
+      return;
+    }
+    if (isSleeping) return;
+
     let data;
     try {
       const r = await fetch('/api/now-playing');
@@ -1302,9 +1334,28 @@
     renderQueue(data.queue || []);
   }
 
+  function startPolling() {
+    if (pollTimer) return;
+    poll();
+    pollTimer = setInterval(poll, 3000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    // Keep checking for wake every 5s while sleeping
+    pollTimer = setInterval(async () => {
+      const sleeping = await checkSleep();
+      if (!sleeping) {
+        isSleeping = false;
+        clearInterval(pollTimer);
+        pollTimer = null;
+        startPolling();
+      }
+    }, 5000);
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────────
-  poll();
-  setInterval(poll, 3000);
+  startPolling();
 </script>
 </body>
 </html>

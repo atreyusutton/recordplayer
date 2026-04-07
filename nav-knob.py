@@ -2,8 +2,11 @@
 """Navigation rotary encoder — GPIO23/24/25 → Tab/Shift+Tab/Enter via uinput virtual keyboard."""
 
 import time
+from pathlib import Path
 import RPi.GPIO as GPIO
 from evdev import UInput, ecodes as e
+
+WAKE_FILE = Path("/tmp/recordplayer_wake")
 
 CLK = 23
 DT  = 24
@@ -16,17 +19,26 @@ GPIO.setup(SW,  GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 ui = UInput()
 
+def _wake():
+    try:
+        WAKE_FILE.write_text("")
+    except OSError:
+        pass
+
 def send_next():
+    _wake()
     ui.write(e.EV_KEY, e.KEY_RIGHT, 1)
     ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
     ui.syn()
 
 def send_prev():
+    _wake()
     ui.write(e.EV_KEY, e.KEY_LEFT, 1)
     ui.write(e.EV_KEY, e.KEY_LEFT, 0)
     ui.syn()
 
 def send_enter():
+    _wake()
     ui.write(e.EV_KEY, e.KEY_ENTER, 1)
     ui.write(e.EV_KEY, e.KEY_ENTER, 0)
     ui.syn()

@@ -18,8 +18,11 @@ import re
 import signal
 import subprocess
 import logging
+from pathlib import Path
 
 from gpiozero import RotaryEncoder, Button
+
+WAKE_FILE = Path("/tmp/recordplayer_wake")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CLK  = 17   # GPIO BCM number
@@ -71,7 +74,15 @@ _muted = False
 _pre_mute_vol = BOOT_VOLUME
 
 
+def _wake():
+    try:
+        WAKE_FILE.write_text("")
+    except OSError:
+        pass
+
+
 def vol_up():
+    _wake()
     if _muted:
         return
     _set_volume(_current_vol + STEP)
@@ -79,6 +90,7 @@ def vol_up():
 
 
 def vol_down():
+    _wake()
     if _muted:
         return
     _set_volume(_current_vol - STEP)
@@ -87,6 +99,7 @@ def vol_down():
 
 def toggle_mute():
     global _muted, _pre_mute_vol
+    _wake()
     _muted = not _muted
     if _muted:
         _pre_mute_vol = _current_vol

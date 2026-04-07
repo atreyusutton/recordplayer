@@ -4,6 +4,7 @@ Record Player Album Art Display
 Runs on Raspberry Pi 4 with Waveshare 4" 720x720 round HDMI LCD.
 Displays spinning album artwork while Spotify plays.
 IPC: polls /tmp/now_playing.json written by onevent.sh
+Sleep/wake: coordinated via /tmp/recordplayer_sleep and /tmp/recordplayer_wake
 """
 
 import os
@@ -27,11 +28,13 @@ FPS = 60
 DEG_PER_FRAME = DEG_PER_SEC / FPS  # ~3.33°
 
 NOW_PLAYING_PATH = Path("/tmp/now_playing.json")
+SLEEP_FILE = Path("/tmp/recordplayer_sleep")
+WAKE_FILE = Path("/tmp/recordplayer_wake")
 FADE_DURATION = 0.5   # seconds
 POLL_INTERVAL = 1.0   # seconds
 COVER_TIMEOUT = 8     # seconds for HTTP requests
 COVER_CACHE_SIZE = 5  # number of cover surfaces to keep in memory
-SCREEN_BLANK_AFTER = 5 * 60  # seconds of no play before blanking screen
+SLEEP_AFTER = 2 * 60  # seconds of no play before sleeping
 
 
 # ── Cover loading ──────────────────────────────────────────────────────────────
@@ -67,15 +70,6 @@ def load_cover(url: str) -> pygame.Surface:
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def make_waiting_surface() -> pygame.Surface:
-    surf = pygame.Surface((DISPLAY_SIZE, DISPLAY_SIZE))
-    surf.fill((0, 0, 0))
-    font = pygame.font.SysFont("dejavusans", 28)
-    text = font.render("Waiting for Spotify...", True, (180, 180, 180))
-    surf.blit(text, text.get_rect(center=(DISPLAY_SIZE // 2, DISPLAY_SIZE // 2)))
-    return surf
-
-
 def rotate_and_crop(source: pygame.Surface, angle: float) -> pygame.Surface:
     """Rotate source by angle degrees, center-crop result to DISPLAY_SIZE×DISPLAY_SIZE."""
     rotated = pygame.transform.rotate(source, angle)
@@ -87,6 +81,38 @@ def rotate_and_crop(source: pygame.Surface, angle: float) -> pygame.Surface:
     return cropped
 
 
+def _screen_power(on: bool):
+    subprocess.run(["vcgencmd", "display_power", "1" if on else "0"], check=False)
+
+
+def _enter_sleep():
+    """Write sleep file and blank screens."""
+    SLEEP_FILE.write_text(str(time.time()))
+    WAKE_FILE.unlink(missing_ok=True)
+    _screen_power(False)
+
+
+def _exit_sleep():
+    """Remove sleep file and turn screens on."""
+    SLEEP_FILE.unlink(missing_ok=True)
+    WAKE_FILE.unlink(missing_ok=True)
+    _screen_power(True)
+
+
+def _check_wake() -> bool:
+    """Return True if a wake trigger is pending."""
+    if WAKE_FILE.exists():
+        return True
+    # Also wake if a new playing event arrived
+    try:
+        data = json.loads(NOW_PLAYING_PATH.read_text())
+        if data.get("event") == "playing":
+            return True
+    except Exception:
+        pass
+    return False
+
+
 # ── State ──────────────────────────────────────────────────────────────────────
 
 class PlayerState:
@@ -95,7 +121,7 @@ class PlayerState:
         self._mtime: float = 0.0
         self._lock = threading.Lock()
         self.cover_surface: pygame.Surface | None = None
-        self._last_play_time: float = time.monotonic()  # init so screen starts on
+        self._last_play_time: float = 0.0  # 0 = never played yet
 
     def poll(self) -> bool:
         """Check /tmp/now_playing.json for changes. Returns True if cover should update.
@@ -128,7 +154,13 @@ class PlayerState:
 
     @property
     def idle_seconds(self) -> float:
+        if self._last_play_time == 0.0:
+            return 0.0  # never played — don't trigger sleep on boot
         return time.monotonic() - self._last_play_time
+
+    @property
+    def has_ever_played(self) -> bool:
+        return self._last_play_time > 0.0
 
     def load_cover_async(self, url: str, callback):
         """Download cover art in a background thread; retry once on failure."""
@@ -151,6 +183,10 @@ def main():
     os.environ.setdefault("WAYLAND_DISPLAY", "wayland-0")
     os.environ.setdefault("XDG_RUNTIME_DIR", "/run/user/1000")
 
+    # Clean up stale sleep/wake files from previous run
+    SLEEP_FILE.unlink(missing_ok=True)
+    WAKE_FILE.unlink(missing_ok=True)
+
     pygame.display.init()
     pygame.font.init()
     pygame.mouse.set_visible(False)
@@ -159,7 +195,7 @@ def main():
     clock = pygame.time.Clock()
 
     state = PlayerState()
-    screen_is_on = True
+    sleeping = False
 
     angle = 0.0
 
@@ -169,8 +205,6 @@ def main():
     fade_old_surf: pygame.Surface | None = None
     new_cover_pending: pygame.Surface | None = None
 
-    waiting_surf = make_waiting_surface()
-    has_track = False
     last_poll = 0.0
 
     def on_cover_loaded(surf: pygame.Surface):
@@ -193,30 +227,39 @@ def main():
         if now - last_poll >= POLL_INTERVAL:
             last_poll = now
 
-            # ── Screen blank / wake ──
-            should_blank = state.idle_seconds > SCREEN_BLANK_AFTER
-            if should_blank and screen_is_on:
-                subprocess.run(["vcgencmd", "display_power", "0"], check=False)
-                screen_is_on = False
-            elif not should_blank and not screen_is_on:
-                subprocess.run(["vcgencmd", "display_power", "1"], check=False)
-                screen_is_on = True
-
-            if state.poll():
-                if state.cover_url:
-                    state.load_cover_async(state.cover_url, on_cover_loaded)
+            if sleeping:
+                # Check for wake triggers
+                if _check_wake():
+                    sleeping = False
+                    _exit_sleep()
+                    print("[display] waking up", file=sys.stderr)
+                    # Re-poll to pick up any new playing event
+                    state.poll()
                 else:
-                    # Track changed but no cover art — clear stale artwork
-                    print("[display] track has no cover art, clearing display", file=sys.stderr)
-                    new_cover_pending = None
-                    state.cover_surface = None
-                    fade_active = False
-                    has_track = False
+                    continue  # stay asleep, skip rendering
+
+            else:
+                # Check if we should sleep
+                if state.has_ever_played and state.idle_seconds > SLEEP_AFTER:
+                    sleeping = True
+                    _enter_sleep()
+                    print("[display] entering sleep", file=sys.stderr)
+                    continue
+
+                if state.poll():
+                    if state.cover_url:
+                        state.load_cover_async(state.cover_url, on_cover_loaded)
+                    else:
+                        new_cover_pending = None
+                        state.cover_surface = None
+                        fade_active = False
+
+        if sleeping:
+            continue
 
         # ── Swap in newly downloaded cover ──
         if new_cover_pending is not None:
             if fade_active:
-                # A second track arrived mid-fade; cut straight to new art
                 state.cover_surface = new_cover_pending
                 new_cover_pending = None
                 fade_active = False
@@ -226,7 +269,6 @@ def main():
                 new_cover_pending = None
                 fade_active = True
                 fade_start = time.monotonic()
-            has_track = True
 
         # ── Rotation (negative = clockwise, matching a real record) ──
         angle = (angle - DEG_PER_FRAME) % 360
@@ -254,8 +296,7 @@ def main():
             else:
                 screen.blit(current_frame, (0, 0))
 
-        elif not has_track:
-            screen.blit(waiting_surf, (0, 0))
+        # No "waiting" text — just black until first track plays
 
         pygame.display.flip()
 

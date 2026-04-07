@@ -16,6 +16,7 @@ umask 022
 OUT="/tmp/now_playing.json"
 STATE="/tmp/now_playing_state.json"
 DEBUG_LOG="/tmp/onevent_debug.log"
+WAKE_FILE="/tmp/recordplayer_wake"
 
 # Serialize concurrent invocations — prevents the race where `playing` reads
 # stale STATE before `track_changed` has finished writing it.
@@ -41,6 +42,10 @@ for token in $COVERS; do
 done
 
 case "$PLAYER_EVENT" in
+    track_changed|playing)
+        # Wake from sleep on any playback event (e.g. Spotify Connect transfer)
+        touch "$WAKE_FILE" 2>/dev/null
+        ;;&
     track_changed)
         # Use python3 json.dumps to write both STATE and OUT so that special
         # characters in NAME/ARTISTS (including the newlines librespot uses to

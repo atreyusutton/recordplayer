@@ -60,6 +60,9 @@ ALSA_CARD     = "Gen"  # Focusrite Scarlett Solo 4th Gen
 ALSA_CONTROLS = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
 ALSA_MAX_VOL  = 87  # 87% = 0dB on Scarlett — above this causes digital clipping
 
+SLEEP_FILE = Path("/tmp/recordplayer_sleep")
+WAKE_FILE  = Path("/tmp/recordplayer_wake")
+
 # ── ALSA system volume ──────────────────────────────────────────────────────────
 
 def _alsa_get() -> tuple[int, bool]:
@@ -205,11 +208,32 @@ def callback():
     })
     return redirect("/")
 
+# ── Sleep/wake ─────────────────────────────────────────────────────────────────
+
+def _is_sleeping() -> bool:
+    return SLEEP_FILE.exists()
+
+def _trigger_wake():
+    try:
+        WAKE_FILE.write_text("")
+    except OSError:
+        pass
+
 # ── Frontend ───────────────────────────────────────────────────────────────────
 
 @app.get("/")
 def index():
     return send_file(BASE / "static" / "index.html")
+
+@app.post("/api/wake")
+def wake():
+    """Touch screen tap or UI interaction triggers wake from sleep."""
+    _trigger_wake()
+    return jsonify({"ok": True})
+
+@app.get("/api/sleep-status")
+def sleep_status():
+    return jsonify({"sleeping": _is_sleeping()})
 
 # ── Playback state ─────────────────────────────────────────────────────────────
 
@@ -517,6 +541,9 @@ def _audio_monitor():
     THRESHOLD = 60.0
     while True:
         time.sleep(15)
+        if _is_sleeping():
+            inactive_since = None
+            continue
         try:
             resp = _get("/me/player")
             if resp.status_code != 200:
