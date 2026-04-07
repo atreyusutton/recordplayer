@@ -32,9 +32,9 @@ SW   = 25
 
 CARD         = "Gen"  # Focusrite Scarlett Solo 4th Gen
 CONTROLS     = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
-STEP         = 5   # percent per detent
-BOOT_VOLUME  = 50  # percent set on startup
-MAX_VOLUME   = 87  # 87% = 0dB on Scarlett — above this causes digital clipping
+STEP         = 4   # percent per detent — 22 clicks from 0 to max
+BOOT_VOLUME  = 48  # percent set on startup (12 clicks)
+MAX_VOLUME   = 88  # 22 × 4 = 88% ≈ 0dB on Scarlett
 MIN_VOLUME   = 0
 
 # ── Logging ───────────────────────────────────────────────────────────────────

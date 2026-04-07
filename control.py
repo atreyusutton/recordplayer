@@ -58,7 +58,7 @@ app.secret_key = secrets.token_hex(32)
 
 ALSA_CARD     = "Gen"  # Focusrite Scarlett Solo 4th Gen
 ALSA_CONTROLS = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
-ALSA_MAX_VOL  = 87  # 87% = 0dB on Scarlett — above this causes digital clipping
+ALSA_MAX_VOL  = 88  # 22 steps × 4% = 88% ≈ 0dB on Scarlett
 
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE  = Path("/tmp/recordplayer_wake")
