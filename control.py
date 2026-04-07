@@ -236,6 +236,26 @@ def volume_level():
         vol, _ = _alsa_get()
     return jsonify({"volume": vol})
 
+@app.get("/api/volume-stream")
+def volume_stream():
+    """SSE stream — pushes volume changes to the UI instantly."""
+    def _generate():
+        last_vol = None
+        last_mtime = 0.0
+        while True:
+            try:
+                mtime = VOL_FILE.stat().st_mtime
+                if mtime != last_mtime:
+                    last_mtime = mtime
+                    vol = int(VOL_FILE.read_text().strip())
+                    if vol != last_vol:
+                        last_vol = vol
+                        yield f"data: {vol}\n\n"
+            except Exception:
+                pass
+            time.sleep(0.05)  # check file 20 times/sec
+    return app.response_class(_generate(), mimetype='text/event-stream')
+
 @app.post("/api/wake")
 def wake():
     """Touch screen tap or UI interaction triggers wake from sleep."""

@@ -1355,17 +1355,21 @@
     }, 5000);
   }
 
-  // ── Fast volume poll (reads knob file, no Spotify API) ─────────────────────
-  let volPollTimer = null;
-  async function pollVolume() {
-    if (isSleeping) return;
-    try {
-      const r = await fetch('/api/volume-level');
-      const d = await r.json();
-      if (d.volume != null) { el('vol-slider').value = d.volume; setVolBg(d.volume); }
-    } catch {}
+  // ── Real-time volume via SSE (server pushes on knob turn) ──────────────────
+  let volSource = null;
+  function connectVolStream() {
+    if (volSource) volSource.close();
+    volSource = new EventSource('/api/volume-stream');
+    volSource.onmessage = (e) => {
+      const v = parseInt(e.data);
+      if (!isNaN(v)) { el('vol-slider').value = v; setVolBg(v); }
+    };
+    volSource.onerror = () => {
+      volSource.close();
+      setTimeout(connectVolStream, 2000);
+    };
   }
-  volPollTimer = setInterval(pollVolume, 150);
+  connectVolStream();
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   startPolling();
