@@ -236,45 +236,35 @@ def volume_level():
         vol, _ = _alsa_get()
     return jsonify({"volume": vol})
 
-@app.get("/api/volume-stream")
-def volume_stream():
-    """SSE stream — pushes volume changes to the UI instantly."""
+NAV_FILE = Path("/tmp/recordplayer_nav")
+
+@app.get("/api/knob-stream")
+def knob_stream():
+    """Single SSE stream for both volume and nav events."""
     def _generate():
+        vol_mtime = 0.0
+        nav_mtime = 0.0
         last_vol = None
-        last_mtime = 0.0
         while True:
             try:
-                mtime = VOL_FILE.stat().st_mtime
-                if mtime != last_mtime:
-                    last_mtime = mtime
+                mt = VOL_FILE.stat().st_mtime
+                if mt != vol_mtime:
+                    vol_mtime = mt
                     vol = int(VOL_FILE.read_text().strip())
                     if vol != last_vol:
                         last_vol = vol
-                        yield f"data: {vol}\n\n"
+                        yield f"event: vol\ndata: {vol}\n\n"
             except Exception:
                 pass
-            time.sleep(0.05)  # check file 20 times/sec
-    return app.response_class(_generate(), mimetype='text/event-stream')
-
-NAV_FILE = Path("/tmp/recordplayer_nav")
-
-@app.get("/api/nav-stream")
-def nav_stream():
-    """SSE stream — pushes nav knob events (next/prev/enter) to the UI."""
-    def _generate():
-        last_mtime = 0.0
-        while True:
             try:
-                mtime = NAV_FILE.stat().st_mtime
-                if mtime != last_mtime:
-                    last_mtime = mtime
+                mt = NAV_FILE.stat().st_mtime
+                if mt != nav_mtime:
+                    nav_mtime = mt
                     data = NAV_FILE.read_text().strip()
-                    yield f"data: {data}\n\n"
-            except FileNotFoundError:
-                pass
+                    yield f"event: nav\ndata: {data}\n\n"
             except Exception:
                 pass
-            time.sleep(0.03)  # ~33Hz check
+            time.sleep(0.03)
     return app.response_class(_generate(), mimetype='text/event-stream')
 
 @app.post("/api/wake")

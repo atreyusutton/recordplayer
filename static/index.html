@@ -1355,21 +1355,7 @@
     }, 5000);
   }
 
-  // ── Real-time volume via SSE (server pushes on knob turn) ──────────────────
-  let volSource = null;
-  function connectVolStream() {
-    if (volSource) volSource.close();
-    volSource = new EventSource('/api/volume-stream');
-    volSource.onmessage = (e) => {
-      const v = parseInt(e.data);
-      if (!isNaN(v)) { el('vol-slider').value = v; setVolBg(v); }
-    };
-    volSource.onerror = () => {
-      volSource.close();
-      setTimeout(connectVolStream, 2000);
-    };
-  }
-  connectVolStream();
+  // ── Combined knob SSE stream (volume + nav in one connection) ──────────────
 
   // ── Nav knob SSE (bypasses Wayland focus) ──────────────────────────────────
   function handleNav(action) {
@@ -1398,25 +1384,29 @@
     }
   }
 
-  let navSource = null;
-  function connectNavStream() {
-    if (navSource) navSource.close();
-    navSource = new EventSource('/api/nav-stream');
-    navSource.onmessage = (e) => {
+  let knobSource = null;
+  function connectKnobStream() {
+    if (knobSource) knobSource.close();
+    knobSource = new EventSource('/api/knob-stream');
+    knobSource.addEventListener('vol', (e) => {
+      const v = parseInt(e.data);
+      if (!isNaN(v)) { el('vol-slider').value = v; setVolBg(v); }
+    });
+    knobSource.addEventListener('nav', (e) => {
       try {
         const d = JSON.parse(e.data);
         if (d.action) handleNav(d.action);
       } catch {}
-    };
-    navSource.onerror = () => {
-      navSource.close();
-      setTimeout(connectNavStream, 2000);
+    });
+    knobSource.onerror = () => {
+      knobSource.close();
+      setTimeout(connectKnobStream, 2000);
     };
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   startPolling();
-  connectNavStream();
+  connectKnobStream();
 </script>
 </body>
 </html>
