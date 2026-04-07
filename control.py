@@ -56,29 +56,30 @@ DEVICE_NAME   = "Record Player"
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
-ALSA_CARD    = "sndrpihifiberry"
-ALSA_CONTROL = "Digital"
+ALSA_CARD     = "Gen"  # Focusrite Scarlett Solo 4th Gen
+ALSA_CONTROLS = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
 
 # ── ALSA system volume ──────────────────────────────────────────────────────────
 
 def _alsa_get() -> tuple[int, bool]:
-    """Return (volume_percent 0-100, muted bool) from ALSA Digital control."""
+    """Return (volume_percent 0-100, muted bool) from ALSA mixer controls."""
     try:
         out = subprocess.check_output(
-            ["amixer", "-c", ALSA_CARD, "sget", ALSA_CONTROL], text=True
+            ["amixer", "-c", ALSA_CARD, "sget", ALSA_CONTROLS[0]], text=True
         )
         m = re.search(r"\[(\d+)%\]", out)
         vol = int(m.group(1)) if m else 50
-        muted = "[off]" in out
+        muted = vol == 0
         return vol, muted
     except Exception:
         return 50, False
 
 def _alsa_set(vol: int):
-    subprocess.run(
-        ["amixer", "-c", ALSA_CARD, "-q", "sset", ALSA_CONTROL, f"{vol}%"],
-        check=False,
-    )
+    for ctrl in ALSA_CONTROLS:
+        subprocess.run(
+            ["amixer", "-c", ALSA_CARD, "-q", "sset", ctrl, f"{vol}%"],
+            check=False,
+        )
 
 # ── Token management ───────────────────────────────────────────────────────────
 

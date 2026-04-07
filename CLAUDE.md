@@ -47,7 +47,7 @@ ssh rasp-bumpy "cat /tmp/now_playing_state.json"
 ## Architecture
 
 ```
-Spotify app  ──Spotify Connect──▶  raspotify (librespot)  ──▶  DAC HAT  ──▶  RCA speakers
+Spotify app  ──Spotify Connect──▶  raspotify (librespot)  ──▶  Scarlett Solo (USB)  ──▶  speakers
                                           │
                               /usr/local/bin/onevent-recordplayer.sh
                               (symlinked to repo's onevent.sh)
@@ -132,7 +132,7 @@ Target display size: **500×282px** (3.5" 16:9). Test in browser with DevTools r
 
 - OS: Raspberry Pi OS Bookworm, Wayland (labwc compositor)
 - Python: 3.13.5, pygame 2.6.1, Pillow 11.1.0, requests, flask — installed
-- Audio: InnoMaker PCM5122 DAC HAT, `hifiberry-dacplus` overlay, device `plughw:sndrpihifiberry`
+- Audio: Focusrite Scarlett Solo 4th Gen (USB), ALSA card `Gen`, device `hw:Gen`
 - Display: Waveshare 4" round HDMI LCD, 720×720
 - Admin user uid=1000; raspotify runs as root
 - Pi IP: `192.168.0.110` (DHCP reserved via MAC `dc:a6:32:b3:44:55`)

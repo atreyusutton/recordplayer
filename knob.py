@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Physical volume knob — rotary encoder on GPIO, controls ALSA Digital mixer.
+"""Physical volume knob — rotary encoder on GPIO, controls ALSA mixer on Scarlett Solo.
 
 Wiring (KY-040 style encoder):
   +   → 3.3V  (pin 1 or 17)
@@ -26,8 +26,8 @@ CLK  = 17   # GPIO BCM number
 DT   = 27
 SW   = 22
 
-CARD         = "sndrpihifiberry"
-CONTROL      = "Digital"
+CARD         = "Gen"  # Focusrite Scarlett Solo 4th Gen
+CONTROLS     = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
 STEP         = 3   # percent per detent
 BOOT_VOLUME  = 65  # percent set on startup
 
@@ -41,39 +41,58 @@ log = logging.getLogger(__name__)
 
 
 # ── ALSA helpers ──────────────────────────────────────────────────────────────
-def _amixer(*args):
+def _amixer(control, *args):
     subprocess.run(
-        ["amixer", "-c", CARD, "-q", "sset", CONTROL, *args],
+        ["amixer", "-c", CARD, "-q", "sset", control, *args],
         check=False,
     )
 
 
+def _amixer_all(*args):
+    for ctrl in CONTROLS:
+        _amixer(ctrl, *args)
+
+
 def _set_boot_volume():
-    _amixer(f"{BOOT_VOLUME}%")
+    _amixer_all(f"{BOOT_VOLUME}%")
     log.info("boot volume set to %d%%", BOOT_VOLUME)
 
 
 _muted = False
+_pre_mute_vol = BOOT_VOLUME
 
 
 def vol_up():
     if _muted:
         return
-    _amixer(f"{STEP}%+")
+    _amixer_all(f"{STEP}%+")
     log.info("vol +%d%%", STEP)
 
 
 def vol_down():
     if _muted:
         return
-    _amixer(f"{STEP}%-")
+    _amixer_all(f"{STEP}%-")
     log.info("vol -%d%%", STEP)
 
 
 def toggle_mute():
-    global _muted
+    global _muted, _pre_mute_vol
     _muted = not _muted
-    _amixer("toggle")
+    if _muted:
+        # Read current volume before muting
+        try:
+            out = subprocess.check_output(
+                ["amixer", "-c", CARD, "sget", CONTROLS[0]], text=True
+            )
+            m = re.search(r"\[(\d+)%\]", out)
+            if m:
+                _pre_mute_vol = int(m.group(1))
+        except Exception:
+            pass
+        _amixer_all("0%")
+    else:
+        _amixer_all(f"{_pre_mute_vol}%")
     log.info("mute %s", "ON" if _muted else "off")
 
 
@@ -87,8 +106,8 @@ button.when_pressed = toggle_mute
 
 _set_boot_volume()
 log.info(
-    "ready  CLK=GPIO%d  DT=GPIO%d  SW=GPIO%d  card=%s  control=%s  step=%d%%",
-    CLK, DT, SW, CARD, CONTROL, STEP,
+    "ready  CLK=GPIO%d  DT=GPIO%d  SW=GPIO%d  card=%s  controls=%s  step=%d%%",
+    CLK, DT, SW, CARD, CONTROLS, STEP,
 )
 
 signal.pause()
