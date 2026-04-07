@@ -29,7 +29,9 @@ SW   = 22
 CARD         = "Gen"  # Focusrite Scarlett Solo 4th Gen
 CONTROLS     = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
 STEP         = 3   # percent per detent
-BOOT_VOLUME  = 65  # percent set on startup
+BOOT_VOLUME  = 50  # percent set on startup
+MAX_VOLUME   = 87  # 87% = 0dB on Scarlett — above this causes digital clipping
+MIN_VOLUME   = 0
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -53,11 +55,18 @@ def _amixer_all(*args):
         _amixer(ctrl, *args)
 
 
+def _set_volume(vol: int):
+    global _current_vol
+    _current_vol = max(MIN_VOLUME, min(MAX_VOLUME, vol))
+    _amixer_all(f"{_current_vol}%")
+
+
 def _set_boot_volume():
-    _amixer_all(f"{BOOT_VOLUME}%")
-    log.info("boot volume set to %d%%", BOOT_VOLUME)
+    _set_volume(BOOT_VOLUME)
+    log.info("boot volume set to %d%%", _current_vol)
 
 
+_current_vol = BOOT_VOLUME
 _muted = False
 _pre_mute_vol = BOOT_VOLUME
 
@@ -65,34 +74,25 @@ _pre_mute_vol = BOOT_VOLUME
 def vol_up():
     if _muted:
         return
-    _amixer_all(f"{STEP}%+")
-    log.info("vol +%d%%", STEP)
+    _set_volume(_current_vol + STEP)
+    log.info("vol %d%%", _current_vol)
 
 
 def vol_down():
     if _muted:
         return
-    _amixer_all(f"{STEP}%-")
-    log.info("vol -%d%%", STEP)
+    _set_volume(_current_vol - STEP)
+    log.info("vol %d%%", _current_vol)
 
 
 def toggle_mute():
     global _muted, _pre_mute_vol
     _muted = not _muted
     if _muted:
-        # Read current volume before muting
-        try:
-            out = subprocess.check_output(
-                ["amixer", "-c", CARD, "sget", CONTROLS[0]], text=True
-            )
-            m = re.search(r"\[(\d+)%\]", out)
-            if m:
-                _pre_mute_vol = int(m.group(1))
-        except Exception:
-            pass
+        _pre_mute_vol = _current_vol
         _amixer_all("0%")
     else:
-        _amixer_all(f"{_pre_mute_vol}%")
+        _set_volume(_pre_mute_vol)
     log.info("mute %s", "ON" if _muted else "off")
 
 
