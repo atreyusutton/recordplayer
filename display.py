@@ -164,29 +164,6 @@ class PlayerState:
     def has_ever_played(self) -> bool:
         return self._last_play_time > 0.0
 
-    def poll_api(self) -> bool:
-        """Poll control.py Spotify API for cover art from any device.
-        Returns True if cover should update."""
-        try:
-            resp = _http.get(CONTROL_API, timeout=3)
-            if not resp.ok:
-                return False
-            data = resp.json()
-        except Exception:
-            return False
-        with self._lock:
-            track = data.get("track")
-            if not track:
-                return False
-            # Any playback (any device) keeps the display alive
-            if data.get("playing"):
-                self._last_play_time = time.monotonic()
-            art_url = track.get("art", "")
-            if art_url and art_url != self.cover_url:
-                self.cover_url = art_url
-                return True
-        return False
-
     def load_cover_async(self, url: str, callback):
         """Download cover art in a background thread; retry once on failure."""
         def _worker():
@@ -231,7 +208,7 @@ def main():
     new_cover_pending: pygame.Surface | None = None
 
     last_poll = 0.0
-    last_api_poll = 0.0
+    api_cover_url: str | None = None  # set by background API poller thread
 
     def on_cover_loaded(surf: pygame.Surface):
         nonlocal new_cover_pending
@@ -245,6 +222,31 @@ def main():
             new_cover_pending = None
             state.cover_surface = None
             fade_active = False
+
+    # Background thread polls Spotify API without blocking the render loop
+    def _api_poller():
+        nonlocal api_cover_url
+        while True:
+            time.sleep(API_POLL_INTERVAL)
+            if sleeping:
+                continue
+            try:
+                resp = _http.get(CONTROL_API, timeout=3)
+                if not resp.ok:
+                    continue
+                data = resp.json()
+                track = data.get("track")
+                if not track:
+                    continue
+                if data.get("playing"):
+                    state._last_play_time = time.monotonic()
+                art = track.get("art", "")
+                if art:
+                    api_cover_url = art
+            except Exception:
+                pass
+
+    threading.Thread(target=_api_poller, daemon=True).start()
 
     while True:
         clock.tick(FPS)
@@ -281,10 +283,12 @@ def main():
                 if state.poll():
                     _trigger_cover_load()
 
-        # ── Poll Spotify API (catches playback on other devices) ──
-        if not sleeping and now - last_api_poll >= API_POLL_INTERVAL:
-            last_api_poll = now
-            if state.poll_api():
+        # ── Check API poller result (non-blocking) ──
+        if not sleeping and api_cover_url is not None:
+            url = api_cover_url
+            api_cover_url = None
+            if url != state.cover_url:
+                state.cover_url = url
                 _trigger_cover_load()
 
         if sleeping:
