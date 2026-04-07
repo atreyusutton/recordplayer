@@ -8,9 +8,9 @@ from evdev import UInput, ecodes as e
 
 WAKE_FILE = Path("/tmp/recordplayer_wake")
 
-CLK = 23
-DT  = 24
-SW  = 25
+CLK = 17
+DT  = 27
+SW  = 22
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)

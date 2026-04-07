@@ -25,9 +25,9 @@ from gpiozero import RotaryEncoder, Button
 WAKE_FILE = Path("/tmp/recordplayer_wake")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-CLK  = 17   # GPIO BCM number
-DT   = 27
-SW   = 22
+CLK  = 23   # GPIO BCM number
+DT   = 24
+SW   = 25
 
 CARD         = "Gen"  # Focusrite Scarlett Solo 4th Gen
 CONTROLS     = ["Mix A Input 01", "Mix B Input 02"]  # L + R playback volume
