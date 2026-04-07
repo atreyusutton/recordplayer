@@ -18,6 +18,7 @@ import re
 import signal
 import subprocess
 import logging
+import threading
 from pathlib import Path
 
 from gpiozero import RotaryEncoder, Button
@@ -62,11 +63,13 @@ def _amixer_all(*args):
 def _set_volume(vol: int):
     global _current_vol
     _current_vol = max(MIN_VOLUME, min(MAX_VOLUME, vol))
-    _amixer_all(f"{_current_vol}%")
+    # Write file first so UI updates instantly
     try:
         VOL_FILE.write_text(str(_current_vol))
     except OSError:
         pass
+    # ALSA update runs in background so it doesn't block the next knob event
+    threading.Thread(target=_amixer_all, args=(f"{_current_vol}%",), daemon=True).start()
 
 
 def _set_boot_volume():
@@ -108,11 +111,11 @@ def toggle_mute():
     _muted = not _muted
     if _muted:
         _pre_mute_vol = _current_vol
-        _amixer_all("0%")
         try:
             VOL_FILE.write_text("0")
         except OSError:
             pass
+        threading.Thread(target=_amixer_all, args=("0%",), daemon=True).start()
     else:
         _set_volume(_pre_mute_vol)
     log.info("mute %s", "ON" if _muted else "off")
