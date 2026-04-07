@@ -30,8 +30,10 @@ DEG_PER_FRAME = DEG_PER_SEC / FPS  # ~3.33°
 NOW_PLAYING_PATH = Path("/tmp/now_playing.json")
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE = Path("/tmp/recordplayer_wake")
+CONTROL_API = "http://localhost:8080/api/now-playing"
 FADE_DURATION = 0.5   # seconds
 POLL_INTERVAL = 1.0   # seconds
+API_POLL_INTERVAL = 3.0  # seconds — poll Spotify API for non-local playback
 COVER_TIMEOUT = 8     # seconds for HTTP requests
 COVER_CACHE_SIZE = 5  # number of cover surfaces to keep in memory
 SLEEP_AFTER = 2 * 60  # seconds of no play before sleeping
@@ -162,6 +164,29 @@ class PlayerState:
     def has_ever_played(self) -> bool:
         return self._last_play_time > 0.0
 
+    def poll_api(self) -> bool:
+        """Poll control.py Spotify API for cover art from any device.
+        Returns True if cover should update."""
+        try:
+            resp = _http.get(CONTROL_API, timeout=3)
+            if not resp.ok:
+                return False
+            data = resp.json()
+        except Exception:
+            return False
+        with self._lock:
+            track = data.get("track")
+            if not track:
+                return False
+            # Any playback (any device) keeps the display alive
+            if data.get("playing"):
+                self._last_play_time = time.monotonic()
+            art_url = track.get("art", "")
+            if art_url and art_url != self.cover_url:
+                self.cover_url = art_url
+                return True
+        return False
+
     def load_cover_async(self, url: str, callback):
         """Download cover art in a background thread; retry once on failure."""
         def _worker():
@@ -206,10 +231,20 @@ def main():
     new_cover_pending: pygame.Surface | None = None
 
     last_poll = 0.0
+    last_api_poll = 0.0
 
     def on_cover_loaded(surf: pygame.Surface):
         nonlocal new_cover_pending
         new_cover_pending = surf
+
+    def _trigger_cover_load():
+        nonlocal new_cover_pending, fade_active
+        if state.cover_url:
+            state.load_cover_async(state.cover_url, on_cover_loaded)
+        else:
+            new_cover_pending = None
+            state.cover_surface = None
+            fade_active = False
 
     while True:
         clock.tick(FPS)
@@ -222,24 +257,21 @@ def main():
                 pygame.quit()
                 sys.exit(0)
 
-        # ── Poll IPC ──
         now = time.monotonic()
+
+        # ── Poll IPC (librespot local events) ──
         if now - last_poll >= POLL_INTERVAL:
             last_poll = now
 
             if sleeping:
-                # Check for wake triggers
                 if _check_wake():
                     sleeping = False
                     _exit_sleep()
                     print("[display] waking up", file=sys.stderr)
-                    # Re-poll to pick up any new playing event
                     state.poll()
                 else:
-                    continue  # stay asleep, skip rendering
-
+                    continue
             else:
-                # Check if we should sleep
                 if state.has_ever_played and state.idle_seconds > SLEEP_AFTER:
                     sleeping = True
                     _enter_sleep()
@@ -247,12 +279,13 @@ def main():
                     continue
 
                 if state.poll():
-                    if state.cover_url:
-                        state.load_cover_async(state.cover_url, on_cover_loaded)
-                    else:
-                        new_cover_pending = None
-                        state.cover_surface = None
-                        fade_active = False
+                    _trigger_cover_load()
+
+        # ── Poll Spotify API (catches playback on other devices) ──
+        if not sleeping and now - last_api_poll >= API_POLL_INTERVAL:
+            last_api_poll = now
+            if state.poll_api():
+                _trigger_cover_load()
 
         if sleeping:
             continue
