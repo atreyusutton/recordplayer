@@ -135,6 +135,7 @@ Target display size: **500×282px** (3.5" 16:9). Test in browser with DevTools r
 - Audio: InnoMaker PCM5122 DAC HAT, `hifiberry-dacplus` overlay, device `plughw:sndrpihifiberry`
 - Display: Waveshare 4" round HDMI LCD, 720×720
 - Admin user uid=1000; raspotify runs as root
+- Pi IP: `192.168.0.110` (DHCP reserved via MAC `dc:a6:32:b3:44:55`)
 - SDL env vars: `SDL_VIDEODRIVER=wayland`, `WAYLAND_DISPLAY=wayland-0`, `XDG_RUNTIME_DIR=/run/user/1000`
 
 ## Systemd services

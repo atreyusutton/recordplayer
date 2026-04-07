@@ -125,3 +125,52 @@ HDMI 1 -> Rectangular 500x282 (control UI)
 - Physical volume knob (rotary encoder on GPIO → ALSA mixer)
 - Physical play/pause button wired to GPIO
 - Voice search (possible but complex)
+
+### Including Audio from a Real Record
+
+*Just a potential plan -- nothing here is confirmed or finalized.*
+
+Mix real vinyl surface noise from a static-only record with the Spotify DAC output using a simple passive analog summing circuit. A potentiometer on the crackle channel controls how much surface noise blends in. No software changes required.
+
+#### Signal Flow
+
+```
+DAC HAT (Spotify) ──[10kΩ]──┬── RCA OUT → speakers
+                              │
+Stock Preamp (vinyl) ──[POT]──[10kΩ]──┘
+```
+
+The turntable already spins a real record and the original cartridge/preamp path is intact. A passive resistor mixer combines both analog signals into a single output.
+
+#### Getting the Record
+
+Need a 12" record with grooves but no music -- just the natural surface noise of vinyl:
+
+- **Lathe-cut "silent" record** (~$25-40): Send a blank/silent WAV to a lathe-cutting service (Etsy -- search "custom lathe cut vinyl"). The grooves themselves produce authentic surface noise even with no audio encoded. Ask for a full-side spiral groove.
+- **Blank grooved test record**: Some vinyl pressing accessory shops sell records with grooves but no signal, made for testing/calibration.
+- **Lathe-cut with recorded crackle** (~$30-50): Record vinyl crackle from a free sample library (e.g., freesound.org), loop it to fill a full side (~20 min at 33 RPM), and send that WAV to a lathe-cut service. More crackle than blank grooves alone. Ask the cutter whether they apply RIAA pre-emphasis -- if they do, the stock phono preamp decodes it correctly. If not (common with cheap lathe cuts), the crackle sounds slightly bass-heavy through the phono preamp, which actually sounds fine/warm.
+
+#### Parts List
+
+| Qty | Part | Purpose |
+|-----|------|---------|
+| 4 | 10k ohm resistor (1/4W) | Series resistors on both channels (2 per channel) |
+| 1 | 50k ohm dual/stereo potentiometer (audio taper) | Crackle volume knob (controls L+R together) |
+| 6 | RCA female jacks (or splitter cables) | Tap DAC HAT output, preamp output, and combined output |
+| - | Hookup wire, solder, small perfboard | Assembly |
+
+Total: ~$5-10 in parts.
+
+#### Wiring
+
+1. Disconnect current DAC HAT RCA cables from speakers.
+2. Run DAC HAT L/R RCA through 10k resistors to a junction point.
+3. Run stock preamp L/R RCA output through the stereo pot, then through 10k resistors to the same junction.
+4. Connect the junction to output RCA jacks (or directly to speaker cables).
+5. Mount the pot near the existing switches on the turntable faceplate. A knob labeled "CRACKLE" or "VINYL".
+
+#### Notes
+
+- **Signal loss:** Passive mixing attenuates each source by ~6dB. If output volume is too low, turn up the amp, or upgrade to an active mixer (op-amp summing amplifier, e.g., TL072).
+- **Ground loops:** Both sources share the Pi's ground, so unlikely. If hum appears, connect grounds together at the mixer junction.
+- **Record wear:** Vinyl crackle increases over time as the stylus wears grooves. Lathe-cut records are softer than pressed records, so they develop character faster.
