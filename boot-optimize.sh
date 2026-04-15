@@ -40,6 +40,10 @@ ensure_line "$CONFIG" "disable_splash=1"
 ensure_line "$CONFIG" "boot_delay=0"
 ensure_line "$CONFIG" "initial_turbo=30"
 
+# Comment out stale DAC overlays — Scarlett is USB, no I2C/I2S DAC attached.
+# Each stale overlay costs ~60s at boot while udev probes a non-existent chip.
+sed -i -E 's/^(dtoverlay=(hifiberry|iqaudio|allo|justboom|dacberry)[^ ]*)/#\1/' "$CONFIG"
+
 # ---------------------------------------------------------------------------
 # 2. cmdline.txt — single line, append silent flags once
 # ---------------------------------------------------------------------------
@@ -76,7 +80,10 @@ install -d "$THEME_DIR"
 install -m 0644 "$REPO/boot/plymouth/recordplayer/recordplayer.plymouth" "$THEME_DIR/recordplayer.plymouth"
 install -m 0644 "$REPO/boot/plymouth/recordplayer/recordplayer.script"   "$THEME_DIR/recordplayer.script"
 
-plymouth-set-default-theme -R recordplayer
+update-alternatives --install /usr/share/plymouth/themes/default.plymouth \
+    default.plymouth "$THEME_DIR/recordplayer.plymouth" 100
+update-alternatives --set default.plymouth "$THEME_DIR/recordplayer.plymouth"
+update-initramfs -u
 
 # ---------------------------------------------------------------------------
 # 4. Disable slow/unused services
