@@ -2,13 +2,24 @@
 <!-- labwc input + window rules — deployed to ~/.config/labwc/rc.xml -->
 <openbox_config xmlns="http://openbox.org/3.4/rc">
   <!-- Touch input mapping -->
-  <touch deviceName="Waveshare-034-HD Waveshare-034-HD" mapToOutput="HDMI-A-2" mouseEmulation="yes"/>
+  <touch deviceName="Waveshare-034-HD Waveshare-034-HD" mapToOutput="HDMI-A-1" mouseEmulation="yes"/>
   <touch deviceName="10-0038 generic ft5x06 (00)" mapToOutput="DSI-1" mouseEmulation="yes"/>
 
-  <!-- Window rules: send Chromium to the DSI touchscreen -->
+  <!-- Window rules: Chromium → DSI touchscreen, pygame album art → round HDMI.
+       Chromium's wayland app_id is "chromium-browser" on Debian Trixie;
+       match multiple variants to be safe. -->
   <windowRules>
-    <windowRule identifier="chromium*">
+    <windowRule identifier="chromium-browser">
       <action name="MoveToOutput" output="DSI-1"/>
+    </windowRule>
+    <windowRule identifier="Chromium-browser">
+      <action name="MoveToOutput" output="DSI-1"/>
+    </windowRule>
+    <windowRule identifier="chromium">
+      <action name="MoveToOutput" output="DSI-1"/>
+    </windowRule>
+    <windowRule title="Record Player">
+      <action name="MoveToOutput" output="HDMI-A-1"/>
     </windowRule>
   </windowRules>
 </openbox_config>
