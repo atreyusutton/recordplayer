@@ -57,6 +57,10 @@ CMDLINE_ADDS=(
     "vt.global_cursor_default=0"
     "plymouth.ignore-serial-consoles"
     "splash"
+    # Disable framebuffer console on all devices. The kernel fbcon grabs
+    # HDMI/DSI at boot; when labwc takes over, the vc4 HVS channel is stuck
+    # active and the first modeset blocks for ~50s (vc4_hvs_stop_channel WARN).
+    "fbcon=map:99"
 )
 current="$(tr -d '\n' < "$CMDLINE")"
 for flag in "${CMDLINE_ADDS[@]}"; do

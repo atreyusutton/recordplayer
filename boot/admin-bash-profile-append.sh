@@ -5,5 +5,5 @@ if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
     export XDG_SESSION_TYPE=wayland
     export XDG_SESSION_DESKTOP=labwc
     export XDG_CURRENT_DESKTOP=labwc:wlroots
-    exec labwc
+    exec labwc -d >/tmp/labwc.log 2>&1
 fi
