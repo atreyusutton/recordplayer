@@ -40,6 +40,17 @@ ensure_line "$CONFIG" "disable_splash=1"
 ensure_line "$CONFIG" "boot_delay=0"
 ensure_line "$CONFIG" "initial_turbo=30"
 
+# Round Waveshare 4" HDMI 720x720 — explicit timings bypass EDID negotiation.
+# Without these, labwc stalls ~40s on EDID read during DRM backend init.
+ensure_line "$CONFIG" "hdmi_force_hotplug=1"
+ensure_line "$CONFIG" "hdmi_group=2"
+ensure_line "$CONFIG" "hdmi_mode=87"
+ensure_line "$CONFIG" "hdmi_cvt=720 720 60 6 0 0 0"
+ensure_line "$CONFIG" "hdmi_drive=1"
+ensure_line "$CONFIG" "config_hdmi_boost=4"
+# Auto-detect conflicts with explicit timings above.
+sed -i -E 's/^display_auto_detect=1/display_auto_detect=0/' "$CONFIG"
+
 # Comment out stale DAC overlays — Scarlett is USB, no I2C/I2S DAC attached.
 # Each stale overlay costs ~60s at boot while udev probes a non-existent chip.
 sed -i -E 's/^(dtoverlay=(hifiberry|iqaudio|allo|justboom|dacberry)[^ ]*)/#\1/' "$CONFIG"
