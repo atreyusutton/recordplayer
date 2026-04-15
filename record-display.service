@@ -1,7 +1,6 @@
 [Unit]
 Description=Record Player Album Art Display
-After=labwc.service
-Requires=labwc.service
+After=multi-user.target
 
 [Service]
 User=admin

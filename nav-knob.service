@@ -1,6 +1,6 @@
 [Unit]
 Description=Navigation Rotary Encoder (Tab/Enter UI navigation)
-After=labwc.service
+After=multi-user.target
 
 [Service]
 User=root

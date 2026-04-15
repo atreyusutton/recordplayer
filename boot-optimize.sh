@@ -111,21 +111,32 @@ for svc in "${DISABLE_SERVICES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# 5. Replace lightdm with direct labwc systemd service.
-#    lightdm blocks user session creation for ~33s waiting on WiFi/seat setup.
-#    labwc.service runs as admin directly on tty1, no display manager.
+# 5. Replace lightdm with getty@tty1 autologin → labwc.
+#    lightdm blocks user session creation for ~33s on this hardware (WiFi wait).
+#    getty autologin gives labwc a proper seat0 session via libseat.
 # ---------------------------------------------------------------------------
-log "Installing labwc.service"
-install -m 0644 "$REPO/labwc.service" /etc/systemd/system/labwc.service
-systemctl daemon-reload
-systemctl enable labwc.service
+log "Configuring getty@tty1 autologin for admin"
+install -d /etc/systemd/system/getty@tty1.service.d
+install -m 0644 "$REPO/boot/getty-autologin.conf" /etc/systemd/system/getty@tty1.service.d/autologin.conf
+
+BASH_PROFILE="/home/admin/.bash_profile"
+MARKER="# --- recordplayer labwc autostart ---"
+if ! grep -qF "$MARKER" "$BASH_PROFILE" 2>/dev/null; then
+    log "Appending labwc autostart to $BASH_PROFILE"
+    {
+        echo ""
+        echo "$MARKER"
+        cat "$REPO/boot/admin-bash-profile-append.sh"
+    } >> "$BASH_PROFILE"
+    chown admin:admin "$BASH_PROFILE"
+fi
 
 if systemctl is-enabled lightdm.service >/dev/null 2>&1; then
     log "Disabling lightdm"
     systemctl disable lightdm.service
 fi
-# Default to multi-user target — labwc is WantedBy=multi-user.target so it starts there.
 systemctl set-default multi-user.target
+systemctl daemon-reload
 
 log "Done. Reboot required: sudo reboot"
 log "After reboot, check: systemd-analyze"

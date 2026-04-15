@@ -1,41 +1,5 @@
-[Unit]
-Description=labwc Wayland compositor (record player)
-After=systemd-user-sessions.service user-runtime-dir@1000.service
-Requires=user-runtime-dir@1000.service
-Conflicts=getty@tty1.service
-
-[Service]
-Type=simple
-User=admin
-Group=admin
-PAMName=login
-TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
-StandardInput=tty-fail
-StandardOutput=journal
-StandardError=journal
-UtmpIdentifier=tty1
-UtmpMode=user
-WorkingDirectory=/home/admin
-
-Environment=HOME=/home/admin
-Environment=USER=admin
-Environment=LOGNAME=admin
-Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_SESSION_CLASS=user
-Environment=XDG_SESSION_DESKTOP=labwc
-Environment=XDG_CURRENT_DESKTOP=labwc:wlroots
-Environment=XDG_SEAT=seat0
-Environment=XDG_VTNR=1
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-ExecStart=/usr/bin/labwc
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
+# labwc.service — superseded by getty@tty1 autologin + ~admin/.bash_profile
+# Left in place for rollback reference only. Not installed by boot-optimize.sh.
+#
+# The autologin approach gives labwc a proper seat0 session via libseat,
+# which systemd-service-with-PAMName=login cannot reliably provide.

@@ -1,7 +1,7 @@
 [Unit]
 Description=Record Player Control UI Kiosk (DSI touchscreen)
-After=labwc.service control.service
-Requires=labwc.service control.service
+After=multi-user.target control.service
+Requires=control.service
 
 [Service]
 User=admin
