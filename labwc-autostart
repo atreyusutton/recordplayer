@@ -4,18 +4,14 @@
 
 CHROMIUM=$(command -v chromium-browser 2>/dev/null || command -v chromium 2>/dev/null)
 
-# Put DSI-1 (ribbon UI screen) at origin so it's the default for new windows
-# HDMI-A-2 (round album art display) sits to the right at 800,0
-wlr-randr --output DSI-1 --pos 0,0 --output HDMI-A-2 --pos 800,0
+# HDMI-A-1 (round album art) at origin, DSI-1 (touch UI) to the right.
+# pygame fullscreen lands on primary output (HDMI-A-1); Chromium is placed on
+# DSI-1 by the windowRule in rc.xml.
+wlr-randr --output HDMI-A-1 --pos 0,0 --output DSI-1 --pos 720,120
 
-# Wait for Flask backend (up to 60 s)
-for i in $(seq 1 60); do
-    curl -s http://localhost:8080 >/dev/null 2>&1 && break
-    sleep 1
-done
-
-# Launch Chromium in a restart loop (runs in background so labwc init isn't blocked)
-# --user-data-dir isolates this instance so it never piggybacks on another session.
+# Launch Chromium IMMEDIATELY — don't wait for Flask. control.service starts
+# before labwc (at ~10s) and is usually serving by the time Chromium is ready
+# for its first request (~25s). If not, Chromium will retry-load on failure.
 (while true; do
     "$CHROMIUM" \
         --kiosk \
@@ -27,9 +23,16 @@ done
         --disable-session-crashed-bubble \
         --disable-component-update \
         --check-for-update-interval=31536000 \
-        --disable-features=TranslateUI \
+        --disable-features=TranslateUI,CalculateNativeWinOcclusion,Translate \
+        --disable-background-networking \
+        --disable-background-timer-throttling \
+        --disable-renderer-backgrounding \
+        --disable-sync \
+        --disable-breakpad \
+        --disable-crash-reporter \
+        --no-pings \
         --overscroll-history-navigation=0 \
         --password-store=basic \
         http://localhost:8080
-    sleep 5
+    sleep 2
 done) &

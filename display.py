@@ -30,6 +30,9 @@ DEG_PER_FRAME = DEG_PER_SEC / FPS  # ~3.33°
 NOW_PLAYING_PATH = Path("/tmp/now_playing.json")
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE = Path("/tmp/recordplayer_wake")
+# Persisted across reboots so the last cover paints at ~2s into record-display
+# startup instead of ~15s (first Spotify API poll).
+LAST_COVER_PATH = Path("/home/admin/apps/recordplayer/_last_cover.png")
 CONTROL_API = "http://localhost:8080/api/now-playing"
 FADE_DURATION = 0.5   # seconds
 POLL_INTERVAL = 1.0   # seconds
@@ -67,7 +70,23 @@ def load_cover(url: str) -> pygame.Surface:
     if len(_cover_cache_order) > COVER_CACHE_SIZE:
         _cover_cache.pop(_cover_cache_order.pop(0), None)
 
+    try:
+        img.save(LAST_COVER_PATH, "PNG", optimize=False)
+    except Exception:
+        pass
+
     return surf
+
+
+def load_last_cover() -> pygame.Surface | None:
+    """Return the last persisted cover immediately (no network)."""
+    if not LAST_COVER_PATH.exists():
+        return None
+    try:
+        img = Image.open(LAST_COVER_PATH).convert("RGBA")
+        return pil_to_pygame(img)
+    except Exception:
+        return None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -198,6 +217,12 @@ def main():
 
     state = PlayerState()
     sleeping = False
+
+    # Paint the last persisted cover so the round display is alive within ~2s
+    # of record-display startup, instead of black until the first API poll.
+    preloaded = load_last_cover()
+    if preloaded is not None:
+        state.cover_surface = preloaded
 
     angle = 0.0
 
