@@ -1,7 +1,7 @@
 [Unit]
 Description=Record Player Album Art Display
-After=graphical.target labwc.service
-Wants=labwc.service
+After=labwc.service
+Requires=labwc.service
 
 [Service]
 User=admin
@@ -16,4 +16,4 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 [Unit]
 Description=Navigation Rotary Encoder (Tab/Enter UI navigation)
-After=graphical.target
+After=labwc.service
 
 [Service]
 User=root
@@ -10,4 +10,4 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target

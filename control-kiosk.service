@@ -1,8 +1,7 @@
 [Unit]
 Description=Record Player Control UI Kiosk (DSI touchscreen)
-After=graphical.target labwc.service control.service
-Wants=labwc.service
-Requires=control.service
+After=labwc.service control.service
+Requires=labwc.service control.service
 
 [Service]
 User=admin
@@ -15,4 +14,4 @@ Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target

@@ -110,5 +110,22 @@ for svc in "${DISABLE_SERVICES[@]}"; do
     fi
 done
 
+# ---------------------------------------------------------------------------
+# 5. Replace lightdm with direct labwc systemd service.
+#    lightdm blocks user session creation for ~33s waiting on WiFi/seat setup.
+#    labwc.service runs as admin directly on tty1, no display manager.
+# ---------------------------------------------------------------------------
+log "Installing labwc.service"
+install -m 0644 "$REPO/labwc.service" /etc/systemd/system/labwc.service
+systemctl daemon-reload
+systemctl enable labwc.service
+
+if systemctl is-enabled lightdm.service >/dev/null 2>&1; then
+    log "Disabling lightdm"
+    systemctl disable lightdm.service
+fi
+# Default to multi-user target — labwc is WantedBy=multi-user.target so it starts there.
+systemctl set-default multi-user.target
+
 log "Done. Reboot required: sudo reboot"
 log "After reboot, check: systemd-analyze"
