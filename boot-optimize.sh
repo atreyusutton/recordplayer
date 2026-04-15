@@ -138,5 +138,14 @@ fi
 systemctl set-default multi-user.target
 systemctl daemon-reload
 
+# Services whose WantedBy moved from graphical.target → multi-user.target
+# need their symlinks rebuilt.
+for svc in record-display.service nav-knob.service control-kiosk.service; do
+    if systemctl list-unit-files "$svc" >/dev/null 2>&1; then
+        systemctl disable "$svc" 2>/dev/null || true
+        systemctl enable  "$svc" 2>/dev/null || true
+    fi
+done
+
 log "Done. Reboot required: sudo reboot"
 log "After reboot, check: systemd-analyze"
