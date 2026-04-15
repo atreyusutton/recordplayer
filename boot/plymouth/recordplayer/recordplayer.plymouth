@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Record Player
+Description=Silent black boot splash for the record player
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/recordplayer
+ScriptFile=/usr/share/plymouth/themes/recordplayer/recordplayer.script

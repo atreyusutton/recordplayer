@@ -1,7 +1,6 @@
 [Unit]
 Description=Record Player Spotify Control UI
-After=network-online.target
-Wants=network-online.target
+After=network.target
 
 [Service]
 User=admin

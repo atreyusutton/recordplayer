@@ -1,0 +1,14 @@
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+
+fun refresh_callback() { }
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun boot_progress_callback(duration, progress) { }
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+fun message_callback(text) { }
+Plymouth.SetMessageFunction(message_callback);
+
+fun display_normal_callback() { }
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
