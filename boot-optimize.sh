@@ -48,9 +48,10 @@ ensure_line "$CONFIG" "hdmi_mode=87"
 ensure_line "$CONFIG" "hdmi_cvt=720 720 60 6 0 0 0"
 ensure_line "$CONFIG" "hdmi_drive=1"
 ensure_line "$CONFIG" "config_hdmi_boost=4"
-# Keep display_auto_detect=1 — disabling it drops DSI panel auto-detection.
-# Our explicit hdmi_cvt/hdmi_mode/hdmi_force_hotplug above take precedence
-# over the auto-detect's HDMI settings, so we keep both.
+# Explicit DSI panel + disabled auto-detect. More reliable than letting
+# display_auto_detect=1 pick panels at boot (it's non-deterministic).
+ensure_line "$CONFIG" "dtoverlay=vc4-kms-dsi-7inch"
+sed -i -E 's/^display_auto_detect=1/display_auto_detect=0/' "$CONFIG"
 
 # Comment out stale DAC overlays — Scarlett is USB, no I2C/I2S DAC attached.
 # Each stale overlay costs ~60s at boot while udev probes a non-existent chip.
