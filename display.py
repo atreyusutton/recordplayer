@@ -143,6 +143,7 @@ class PlayerState:
         self._lock = threading.Lock()
         self.cover_surface: pygame.Surface | None = None
         self._last_play_time: float = 0.0  # 0 = never played yet
+        self.is_playing: bool = False
 
     def poll(self) -> bool:
         """Check /tmp/now_playing.json for changes. Returns True if cover should update.
@@ -164,7 +165,10 @@ class PlayerState:
         with self._lock:
             event = data.get("event")
             if event == "playing":
+                self.is_playing = True
                 self._last_play_time = time.monotonic()
+            elif event in ("paused", "stopped"):
+                self.is_playing = False
             if event != "playing":
                 return False
             new_url = data.get("cover_url", "")
@@ -260,10 +264,12 @@ def main():
                 if not resp.ok:
                     continue
                 data = resp.json()
+                is_playing = bool(data.get("playing"))
+                state.is_playing = is_playing
                 track = data.get("track")
                 if not track:
                     continue
-                if data.get("playing"):
+                if is_playing:
                     state._last_play_time = time.monotonic()
                 art = track.get("art", "")
                 if art:
@@ -333,7 +339,8 @@ def main():
                 fade_start = time.monotonic()
 
         # ── Rotation (negative = clockwise, matching a real record) ──
-        angle = (angle - DEG_PER_FRAME) % 360
+        if state.is_playing:
+            angle = (angle - DEG_PER_FRAME) % 360
 
         # ── Render ──
         screen.fill((0, 0, 0))

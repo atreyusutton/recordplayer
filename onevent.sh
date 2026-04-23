@@ -43,8 +43,11 @@ done
 
 case "$PLAYER_EVENT" in
     track_changed|playing)
-        # Wake from sleep on any playback event (e.g. Spotify Connect transfer)
+        # Wake from sleep on any playback event (e.g. Spotify Connect transfer).
+        # chmod 666 so the admin-owned display.py can unlink this file during
+        # its startup cleanup — raspotify runs as root, display.py runs as admin.
         touch "$WAKE_FILE" 2>/dev/null
+        chmod 666 "$WAKE_FILE" 2>/dev/null
         ;;&
     track_changed)
         # Use python3 json.dumps to write both STATE and OUT so that special
