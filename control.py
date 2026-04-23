@@ -23,9 +23,9 @@ import requests
 from flask import Flask, jsonify, redirect, request, send_file, session
 
 try:
-    from gpiozero import OutputDevice
+    from gpiozero import PWMOutputDevice
 except ImportError:
-    OutputDevice = None  # type: ignore
+    PWMOutputDevice = None  # type: ignore
 
 # ── Config & paths ─────────────────────────────────────────────────────────────
 
@@ -68,9 +68,12 @@ ALSA_MAX_VOL  = 88  # 22 steps × 4% = 88% ≈ 0dB on Scarlett
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE  = Path("/tmp/recordplayer_wake")
 
-MOTOR_GPIO       = 18
-MOTOR_MODE_FILE  = Path("/tmp/recordplayer_motor_mode")  # "auto" | "off"
-NOW_PLAYING_FILE = Path("/tmp/now_playing.json")
+MOTOR_GPIO         = 18
+MOTOR_PWM_HZ       = 1000
+MOTOR_SPEED_FILE   = Path("/tmp/recordplayer_motor_speed")  # float 0.0-1.0
+MOTOR_SPEED_DEFAULT = 0.025  # tuned empirically — 33⅓ RPM on this motor/gearing
+MOTOR_MODE_FILE    = Path("/tmp/recordplayer_motor_mode")  # "auto" | "off"
+NOW_PLAYING_FILE   = Path("/tmp/now_playing.json")
 
 # ── ALSA system volume ──────────────────────────────────────────────────────────
 
@@ -581,10 +584,12 @@ def recently_played():
 # watch that file (fast, event-driven, only reflects this device's playback —
 # the motor won't spin for music playing on another Spotify Connect device).
 
-_motor_device: OutputDevice | None = None
-if OutputDevice is not None:
+_motor_device: PWMOutputDevice | None = None
+if PWMOutputDevice is not None:
     try:
-        _motor_device = OutputDevice(MOTOR_GPIO, initial_value=False)
+        _motor_device = PWMOutputDevice(
+            MOTOR_GPIO, frequency=MOTOR_PWM_HZ, initial_value=0.0
+        )
     except Exception as e:
         print(f"[control] motor GPIO init failed: {e}", file=sys.stderr)
 
@@ -600,10 +605,20 @@ def _read_motor_mode() -> str:
 def _write_motor_mode(mode: str):
     MOTOR_MODE_FILE.write_text(mode)
 
-motor_mode: str = _read_motor_mode()
+def _read_motor_speed() -> float:
+    try:
+        return max(0.0, min(1.0, float(MOTOR_SPEED_FILE.read_text().strip())))
+    except (FileNotFoundError, OSError, ValueError):
+        return MOTOR_SPEED_DEFAULT
+
+def _write_motor_speed(speed: float):
+    MOTOR_SPEED_FILE.write_text(f"{speed:.3f}")
+
+motor_mode:  str   = _read_motor_mode()
+motor_speed: float = _read_motor_speed()
 
 def _motor_monitor():
-    """Drive GPIO18 from playback state + mode. Polls /tmp/now_playing.json mtime."""
+    """Drive GPIO18 PWM from playback state + mode. Polls /tmp/now_playing.json mtime."""
     if _motor_device is None:
         return
     last_mtime = 0.0
@@ -625,9 +640,9 @@ def _motor_monitor():
                 else:
                     playing = False
 
-            should_run = motor_mode == "auto" and playing
-            if _motor_device.is_active != should_run:
-                _motor_device.value = should_run
+            target = motor_speed if (motor_mode == "auto" and playing) else 0.0
+            if abs(_motor_device.value - target) > 1e-3:
+                _motor_device.value = target
         except Exception as e:
             print(f"[control] motor monitor: {e}", file=sys.stderr)
         time.sleep(0.5)
@@ -638,7 +653,8 @@ threading.Thread(target=_motor_monitor, daemon=True).start()
 def motor_mode_get():
     return jsonify({
         "mode":      motor_mode,
-        "running":   bool(_motor_device and _motor_device.is_active),
+        "speed":     motor_speed,
+        "running":   bool(_motor_device and _motor_device.value > 0),
         "available": _motor_device is not None,
     })
 
@@ -653,8 +669,23 @@ def motor_mode_set():
     # If switching to off, stop motor immediately — don't wait for the next
     # monitor tick (up to 0.5s delay feels laggy on a user-initiated toggle).
     if mode == "off" and _motor_device is not None:
-        _motor_device.off()
+        _motor_device.value = 0.0
     return jsonify({"mode": motor_mode})
+
+@app.post("/api/motor-speed")
+def motor_speed_set():
+    global motor_speed
+    try:
+        speed = float((request.json or {}).get("speed"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid speed"}), 400
+    speed = max(0.0, min(1.0, speed))
+    motor_speed = speed
+    _write_motor_speed(speed)
+    # Apply immediately if currently spinning
+    if _motor_device is not None and _motor_device.value > 0:
+        _motor_device.value = speed
+    return jsonify({"speed": motor_speed})
 
 # ── Audio monitor ──────────────────────────────────────────────────────────────
 

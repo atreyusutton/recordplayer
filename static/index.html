@@ -230,6 +230,30 @@
     :focus-visible { outline: none; background-color: #2a2a2a; border-radius: 6px; }
     .ctrl:focus-visible { border-radius: 50%; background-color: #2a2a2a; }
 
+    /* Motor spin toggle — fixed overlay, top-right on the player page only */
+    #motor-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 50;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.55);
+      color: var(--dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #motor-btn.active { color: var(--green); }
+    #motor-btn:active { transform: scale(0.92); }
+    #motor-btn svg { display: block; }
+    #motor-btn.hidden { display: none; }
+
     /* Repeat badge "1" */
     #repeat-wrap { position: relative; display: flex; }
     #repeat-badge {
@@ -617,6 +641,15 @@
 <!-- Main UI -->
 <div id="main-ui">
 
+  <!-- Motor spin toggle — floating overlay, top-right on all pages -->
+  <button id="motor-btn" onclick="toggleMotor()" aria-label="Spin with music">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="12" cy="12" r="9.2"/>
+      <circle cx="12" cy="12" r="5.5"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+    </svg>
+  </button>
+
   <!-- Pages outer -->
   <div id="pages-outer">
     <div id="pages">
@@ -675,13 +708,6 @@
               </svg>
               <span id="repeat-badge">1</span>
             </div>
-          </button>
-          <button class="ctrl" id="motor-btn" onclick="toggleMotor()" aria-label="Spin with music">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-              <circle cx="12" cy="12" r="9.2"/>
-              <circle cx="12" cy="12" r="5.5"/>
-              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
-            </svg>
           </button>
         </div>
 
@@ -853,6 +879,7 @@
       }
     });
     document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === n));
+    el('motor-btn').classList.toggle('hidden', n !== 0);
     if (n === 1 && !playlistsLoaded) loadPlaylists();
     if (n === 2 && !recentlyPlayedLoaded) loadRecentlyPlayed();
   }
