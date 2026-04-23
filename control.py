@@ -22,6 +22,11 @@ from pathlib import Path
 import requests
 from flask import Flask, jsonify, redirect, request, send_file, session
 
+try:
+    from gpiozero import OutputDevice
+except ImportError:
+    OutputDevice = None  # type: ignore
+
 # ── Config & paths ─────────────────────────────────────────────────────────────
 
 BASE = Path(__file__).parent
@@ -62,6 +67,10 @@ ALSA_MAX_VOL  = 88  # 22 steps × 4% = 88% ≈ 0dB on Scarlett
 
 SLEEP_FILE = Path("/tmp/recordplayer_sleep")
 WAKE_FILE  = Path("/tmp/recordplayer_wake")
+
+MOTOR_GPIO       = 18
+MOTOR_MODE_FILE  = Path("/tmp/recordplayer_motor_mode")  # "auto" | "off"
+NOW_PLAYING_FILE = Path("/tmp/now_playing.json")
 
 # ── ALSA system volume ──────────────────────────────────────────────────────────
 
@@ -565,6 +574,87 @@ def recently_played():
             "album_uri":  album.get("uri", ""),
         })
     return jsonify(result[:6])
+
+# ── Motor (GPIO18 MOSFET) ──────────────────────────────────────────────────────
+# Turntable motor follows Spotify playback when mode is "auto".
+# onevent.sh writes `/tmp/now_playing.json` on every librespot event, so we
+# watch that file (fast, event-driven, only reflects this device's playback —
+# the motor won't spin for music playing on another Spotify Connect device).
+
+_motor_device: OutputDevice | None = None
+if OutputDevice is not None:
+    try:
+        _motor_device = OutputDevice(MOTOR_GPIO, initial_value=False)
+    except Exception as e:
+        print(f"[control] motor GPIO init failed: {e}", file=sys.stderr)
+
+def _read_motor_mode() -> str:
+    try:
+        val = MOTOR_MODE_FILE.read_text().strip()
+        if val in ("auto", "off"):
+            return val
+    except (FileNotFoundError, OSError):
+        pass
+    return "auto"
+
+def _write_motor_mode(mode: str):
+    MOTOR_MODE_FILE.write_text(mode)
+
+motor_mode: str = _read_motor_mode()
+
+def _motor_monitor():
+    """Drive GPIO18 from playback state + mode. Polls /tmp/now_playing.json mtime."""
+    if _motor_device is None:
+        return
+    last_mtime = 0.0
+    playing = False
+    while True:
+        try:
+            try:
+                mt = NOW_PLAYING_FILE.stat().st_mtime
+            except FileNotFoundError:
+                mt = 0.0
+            if mt != last_mtime:
+                last_mtime = mt
+                if mt:
+                    try:
+                        event = json.loads(NOW_PLAYING_FILE.read_text()).get("event")
+                        playing = event in ("playing", "track_changed")
+                    except Exception:
+                        playing = False
+                else:
+                    playing = False
+
+            should_run = motor_mode == "auto" and playing
+            if _motor_device.is_active != should_run:
+                _motor_device.value = should_run
+        except Exception as e:
+            print(f"[control] motor monitor: {e}", file=sys.stderr)
+        time.sleep(0.5)
+
+threading.Thread(target=_motor_monitor, daemon=True).start()
+
+@app.get("/api/motor-mode")
+def motor_mode_get():
+    return jsonify({
+        "mode":      motor_mode,
+        "running":   bool(_motor_device and _motor_device.is_active),
+        "available": _motor_device is not None,
+    })
+
+@app.post("/api/motor-mode")
+def motor_mode_set():
+    global motor_mode
+    mode = (request.json or {}).get("mode")
+    if mode not in ("auto", "off"):
+        return jsonify({"error": "invalid mode"}), 400
+    motor_mode = mode
+    _write_motor_mode(mode)
+    # If switching to off, stop motor immediately — don't wait for the next
+    # monitor tick (up to 0.5s delay feels laggy on a user-initiated toggle).
+    if mode == "off" and _motor_device is not None:
+        _motor_device.off()
+    return jsonify({"mode": motor_mode})
 
 # ── Audio monitor ──────────────────────────────────────────────────────────────
 

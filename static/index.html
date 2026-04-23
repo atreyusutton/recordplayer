@@ -676,6 +676,13 @@
               <span id="repeat-badge">1</span>
             </div>
           </button>
+          <button class="ctrl" id="motor-btn" onclick="toggleMotor()" aria-label="Spin with music">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <circle cx="12" cy="12" r="9.2"/>
+              <circle cx="12" cy="12" r="5.5"/>
+              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
         </div>
 
         <!-- Queue (replaces Next Up) -->
@@ -788,6 +795,7 @@
   let tickTimer    = null;
   let shuffleState = false;
   let repeatState  = 'off';   // 'off' | 'context' | 'track'
+  let motorMode    = 'auto';  // 'auto' | 'off' — auto = motor follows playback
 
   // Page state
   let currentPage         = 0;
@@ -926,6 +934,27 @@
     const on = repeatState !== 'off';
     el('repeat-btn').classList.toggle('active', on);
     el('repeat-badge').style.display = repeatState === 'track' ? '' : 'none';
+  }
+
+  function updateMotorBtn() {
+    el('motor-btn').classList.toggle('active', motorMode === 'auto');
+  }
+
+  function toggleMotor() {
+    motorMode = motorMode === 'auto' ? 'off' : 'auto';
+    updateMotorBtn();
+    fetch('/api/motor-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: motorMode }),
+    });
+  }
+
+  function loadMotorMode() {
+    fetch('/api/motor-mode')
+      .then(r => r.json())
+      .then(d => { if (d.mode) { motorMode = d.mode; updateMotorBtn(); } })
+      .catch(() => {});
   }
 
   // ── Queue ──────────────────────────────────────────────────────────────────
@@ -1395,6 +1424,7 @@
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
+  loadMotorMode();
   startPolling();
   setInterval(pollKnobs, 100);
 </script>
